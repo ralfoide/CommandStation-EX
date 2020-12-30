@@ -20,7 +20,6 @@
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
 #include "MotorDriver.h"
-#include "ArduinoTimers.h"
 
 // Wait times for power management. Unit: milliseconds
 const int  POWER_SAMPLE_ON_WAIT = 100;
@@ -46,8 +45,7 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
-    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver, byte timerNumber);
-    static void setDiagnosticSlowWave(bool slow);
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
     static void loop();
     static DCCWaveform  mainTrack;
     static DCCWaveform  progTrack;
@@ -86,10 +84,9 @@ class DCCWaveform {
     inline void setMaxAckPulseDuration(unsigned int i) {
 	maxAckPulseDuration = i;
     }
-
+   static void interruptHandler();
+ 
   private:
-    static VirtualTimer * interruptTimer;      
-    static void interruptHandler();
     bool interrupt1();
     void interrupt2();
     void checkAck();

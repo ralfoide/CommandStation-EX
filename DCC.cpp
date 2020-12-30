@@ -45,7 +45,7 @@ const byte FN_GROUP_5=0x10;
 
 __FlashStringHelper* DCC::shieldName=NULL;
 
-void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver, byte timerNumber) {
+void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
   shieldName=(__FlashStringHelper*)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
@@ -53,7 +53,7 @@ void DCC::begin(const __FlashStringHelper* motorShieldName, MotorDriver * mainDr
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mainDriver,progDriver, timerNumber); 
+  DCCWaveform::begin(mainDriver,progDriver); 
 }
 
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
