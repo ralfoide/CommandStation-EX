@@ -24,6 +24,14 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  #define TIMER1_A_PIN   11
+  #define TIMER1_B_PIN   12
+#else
+  #define TIMER1_A_PIN   9
+  #define TIMER1_B_PIN   10
+#endif
+
 // If the configuration uses one of the timer pins, we can switch to the more accurate hardware PWM.
 // Otherwise we use the software interrupt to set the pin.  
 enum SIGNAL_PIN_TYPE {STANDARD_PIN, PWM_PIN_A, PWM_PIN_B};
