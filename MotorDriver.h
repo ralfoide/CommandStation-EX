@@ -24,6 +24,10 @@
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+// If the configuration uses one of the timer pins, we can switch to the more accurate hardware PWM.
+// Otherwise we use the software interrupt to set the pin.  
+enum SIGNAL_PIN_TYPE {STANDARD_PIN, PWM_PIN_A, PWM_PIN_B};
+
 class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
@@ -39,6 +43,7 @@ class MotorDriver {
 
   private:
     byte powerPin, signalPin, signalPin2, currentPin, faultPin;
+    SIGNAL_PIN_TYPE signalPinType;
     int8_t brakePin;       // negative means pin is inverted
     float senseFactor;
     unsigned int tripMilliamps;

@@ -38,6 +38,23 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
   signalPin=signal_pin;
+  
+  // {STANDARD_PIN, PWM_PIN_A, PWM_PIN_B}
+  
+  switch (signalPin) {
+    case TIMER1_A_PIN:
+     signalPinType=PWM_PIN_A;
+     TCCR1A |= _BV(COM1A1);
+     break;
+    case TIMER1_B_PIN:
+     signalPinType=PWM_PIN_B;
+     TCCR1A |= _BV(COM1B1);
+     break;
+  default:
+   signalPinType=STANDARD_PIN;
+   break;
+  }
+   
   signalPin2=signal_pin2;
   brakePin=brake_pin;
   currentPin=current_pin;
@@ -84,8 +101,19 @@ void MotorDriver::setBrake(bool on) {
 }
 
 void MotorDriver::setSignal( bool high) {
-  WritePin(signalPin, high ? HIGH : LOW);
-  if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
+  // {STANDARD_PIN, PWM_PIN_A, PWM_PIN_B}
+  switch (signalPinType) {
+    case STANDARD_PIN:
+         WritePin(signalPin, high ? HIGH : LOW);
+         if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
+         break;
+    case PWM_PIN_A:
+         OCR1A= high?1024:0;
+         break;
+    case PWM_PIN_B:
+         OCR1B= high?1024:0;
+         break;
+  }
 }
 
 
