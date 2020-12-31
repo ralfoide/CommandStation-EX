@@ -42,6 +42,7 @@ class MotorDriver {
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
+    virtual void setPwm();
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);

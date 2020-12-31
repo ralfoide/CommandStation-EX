@@ -40,20 +40,6 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   signalPin=signal_pin;
   
   // {STANDARD_PIN, PWM_PIN_A, PWM_PIN_B}
-  
-  switch (signalPin) {
-    case TIMER1_A_PIN:
-     signalPinType=PWM_PIN_A;
-     TCCR1A |= _BV(COM1A1);
-     break;
-    case TIMER1_B_PIN:
-     signalPinType=PWM_PIN_B;
-     TCCR1A |= _BV(COM1B1);
-     break;
-  default:
-   signalPinType=STANDARD_PIN;
-   break;
-  }
    
   signalPin2=signal_pin2;
   brakePin=brake_pin;
@@ -69,6 +55,23 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   if (signalPin2 != UNUSED_PIN) pinMode(signalPin2, OUTPUT);
   pinMode(currentPin, INPUT);
   if (faultPin != UNUSED_PIN) pinMode(faultPin, INPUT);
+}
+
+void MotorDriver::setPwm() {
+  // called after timer register initialisation
+  switch (signalPin) {
+    case TIMER1_A_PIN:
+     signalPinType=PWM_PIN_A;
+     TCCR1A |= _BV(COM1A1);
+     break;
+    case TIMER1_B_PIN:
+     signalPinType=PWM_PIN_B;
+     TCCR1A |= _BV(COM1B1);
+     break;
+  default:
+   signalPinType=STANDARD_PIN;
+   break;
+  }
 }
 
 void MotorDriver::setPower(bool on) {
@@ -108,10 +111,10 @@ void MotorDriver::setSignal( bool high) {
          if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
          break;
     case PWM_PIN_A:
-         OCR1A= high?1024:0;
+         if (OCR1A!= high?1025:0) OCR1A= high?1025:0;
          break;
     case PWM_PIN_B:
-         OCR1B= high?1024:0;
+         OCR1B= high?1023:0;
          break;
   }
 }

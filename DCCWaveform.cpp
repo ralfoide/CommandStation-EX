@@ -43,7 +43,10 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   ICR1 = (F_CPU / 1000000) * NORMAL_SIGNAL_TIME;
   TCNT1 = 0;   
   TCCR1B = _BV(WGM13) | _BV(WGM12) | 1;     
-  TIMSK1 = _BV(TOIE1); // Software interrupt  
+  TIMSK1 = _BV(TOIE1); // Software interrupt 
+  mainTrack.motorDriver->setPwm();
+  progTrack.motorDriver->setPwm();
+ 
 }
 
 void DCCWaveform::loop() {
