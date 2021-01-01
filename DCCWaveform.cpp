@@ -39,26 +39,28 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   progTrack.setPowerMode(POWERMODE::OFF);
 
   // Initialise timer1 to trigger every 58us (NORMAL_SIGNAL_TIME)
-  TCCR1A = _BV(WGM11);
-  ICR1 = (F_CPU / 1000000) * NORMAL_SIGNAL_TIME;
+  noInterrupts();
+  TCCR1A = 0;
+  ICR1 = ((F_CPU / 1000000) * NORMAL_SIGNAL_TIME) >>1;
   TCNT1 = 0;   
-  TCCR1B = _BV(WGM13) | _BV(WGM12) | 1;     
-  TIMSK1 = _BV(TOIE1); // Software interrupt 
-  mainTrack.motorDriver->setPwm();
-  progTrack.motorDriver->setPwm();
- 
+  TCCR1B = _BV(WGM13) | _BV(CS10);     // Mode 8, clock select 1
+  mainTrack.motorDriver->setPwm(); // may enable PWM for the signal pin
+  progTrack.motorDriver->setPwm(); // may enable PWM for the signal pin 
+  TIMSK1 = _BV(TOIE1); // Enable Software interrupt
+  interrupts();
+  // TimerOne gives us TCCR1A=xA0 ICR1=x1D0 TCCR1B=x11 TIMSK1=x1
+  DIAG(F("\nTimer1 TCCR1A=x%x ICR1=x%x TCCR1B=x%x TIMSK1=x%x\n"),TCCR1A,ICR1,TCCR1B,TIMSK1);   
+}
+
+// Timer interrupt every 58uS
+ISR(TIMER1_OVF_vect)
+{
+    DCCWaveform::interruptHandler();
 }
 
 void DCCWaveform::loop() {
   mainTrack.checkPowerOverload();
   progTrack.checkPowerOverload();
-}
-
-
-// static //
-ISR(TIMER1_OVF_vect)
-{
-    DCCWaveform::interruptHandler();
 }
 
 void DCCWaveform::interruptHandler() {

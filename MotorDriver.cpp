@@ -111,10 +111,10 @@ void MotorDriver::setSignal( bool high) {
          if (signalPin2 != UNUSED_PIN) WritePin(signalPin2, high ? LOW : HIGH);
          break;
     case PWM_PIN_A:
-         if (OCR1A!= high?1025:0) OCR1A= high?1025:0;
+         OCR1A= high?1024:0;
          break;
     case PWM_PIN_B:
-         OCR1B= high?1023:0;
+         OCR1B= high?1024:0;
          break;
   }
 }
