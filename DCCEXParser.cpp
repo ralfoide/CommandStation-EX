@@ -447,7 +447,14 @@ void DCCEXParser::parse(Print *stream, byte *com, bool blocking)
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
         // TODO Send stats of  speed reminders table
         // TODO send status of turnouts etc etc
-        return;
+        // params set to 0 is the "print all" command
+        params = 0;
+        if (!parseT(stream, params, p)) // dump turnouts
+            StringFormatter::send(stream, F("<X>"));
+        params = 0;
+        if (parseZ(stream, params, p)); // dump outputs
+            return;
+        break;
 
     case 'E': // STORE EPROM <E>
         EEStore::store();
