@@ -34,11 +34,19 @@ bool DCCWaveform::progTrackSyncMain=false;
 bool DCCWaveform::progTrackBoosted=false; 
 int  DCCWaveform::progTripValue=0;
   
-void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
+void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver,
+                    MotorDriver * booster1, MotorDriver * booster2, MotorDriver * booster3, MotorDriver * booster4)
+                    {
   mainTrack.motorDriver=mainDriver;
   mainDriver->domainName=F("MAIN");
   mainTrack.setPowerMode(POWERMODE::OFF);      
   MotorDriver::usePWM= mainDriver->isPWMCapable();
+
+  // Chain boosters together with main Motor Driver (reverse order add gets chain in real order)
+  if (booster4) mainDriver->addBooster(booster4);
+  if (booster3) mainDriver->addBooster(booster3);
+  if (booster2) mainDriver->addBooster(booster2);
+  if (booster1) mainDriver->addBooster(booster1);
   
   if (progDriver) {  // Optional prog track 
     progTrack=new DCCWaveform(PREAMBLE_BITS_PROG, false);

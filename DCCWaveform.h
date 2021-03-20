@@ -48,7 +48,8 @@ const byte resetPacket[] = {0x00, 0x00, 0x00};
 class DCCWaveform {
   public:
     DCCWaveform( byte preambleBits, bool isMain);
-    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
+    static void begin(MotorDriver * mainDriver, MotorDriver * progDriver,
+                        MotorDriver * booster1, MotorDriver * booster2, MotorDriver * booster3, MotorDriver * booster4);
     static void loop(bool ackManagerActive);
     static DCCWaveform   mainTrack;
     static DCCWaveform * progTrack;

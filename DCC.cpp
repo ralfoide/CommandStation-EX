@@ -47,7 +47,9 @@ const byte FN_GROUP_5=0x10;
 FSH* DCC::shieldName=NULL;
 byte DCC::joinRelay=UNUSED_PIN;
 
-void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver * progDriver,
+       MotorDriver * booster1, MotorDriver * booster2, MotorDriver * booster3, MotorDriver * booster4
+) {
   shieldName=(FSH *)motorShieldName;
   DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
@@ -55,7 +57,7 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
-  DCCWaveform::begin(mainDriver,progDriver); 
+  DCCWaveform::begin(mainDriver,progDriver, booster1, booster2, booster3, booster4); 
 }
 
 void DCC::setJoinRelayPin(byte joinRelayPin) {

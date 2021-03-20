@@ -30,7 +30,8 @@ bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
 
 
-MotorDriver::MotorDriver(FSH * domain_Name,byte power_pin, byte current_pin, float sense_factor, unsigned int trip_milliamps) {
+MotorDriver::MotorDriver(const FSH * domain_Name,byte power_pin, byte current_pin, float sense_factor, unsigned int trip_milliamps) {
+  boosterChain=NULL;
   domainName=domain_Name;
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
@@ -91,6 +92,11 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     pinMode(faultPin, INPUT);
   }
 
+}
+
+void MotorDriver::addBooster(MotorDriver * booster) {
+  booster->boosterChain=boosterChain;
+  boosterChain=booster;
 }
 
 bool MotorDriver::isPWMCapable() {
