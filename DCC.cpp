@@ -674,16 +674,20 @@ void  DCC::ackManagerSetup(int cv, byte byteValueOrBitnum, ackOp const program[]
 }
 
 void  DCC::ackManagerSetup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
-  ackManagerWord=wordval;
-  ackManagerProg = program;
-  ackManagerCallback = callback;
+  if (DCCWaveform::progTrack && DCCWaveform::progTrack->canMeasureCurrent()) {
+    // can only do ack Manager if we have a prog track and it can measure current 
+    ackManagerWord=wordval;
+    ackManagerProg = program;
+    ackManagerCallback = callback;
+  }
+  else  callback(-2);  // No chance  
   }
 
 const byte RESET_MIN=8;  // tuning of reset counter before sending message
 
 // checkRessets return true if the caller should yield back to loop and try later.
 bool DCC::checkResets(uint8_t numResets) {
-  return DCCWaveform::progTrack.sentResetsSincePacket < numResets;
+  return DCCWaveform::progTrack->sentResetsSincePacket < numResets;
 }
 
 void DCC::ackManagerLoop() {
@@ -696,20 +700,16 @@ void DCC::ackManagerLoop() {
     switch (opcode) {
       case BASELINE:
       ackManagerRejoin=DCCWaveform::progTrackSyncMain;
-      if (!DCCWaveform::progTrack.canMeasureCurrent()) {
-        callback(-2);
-        return;
-      }
       setProgTrackSyncMain(false);
-	  if (DCCWaveform::progTrack.getPowerMode() == POWERMODE::OFF) {
+	  if (DCCWaveform::progTrack->getPowerMode() == POWERMODE::OFF) {
         if (Diag::ACK) DIAG(F("\nAuto Prog power on"));
-        DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
-        DCCWaveform::progTrack.sentResetsSincePacket = 0;
-	      DCCWaveform::progTrack.autoPowerOff=true;
+        DCCWaveform::progTrack->setPowerMode(POWERMODE::ON);
+        DCCWaveform::progTrack->sentResetsSincePacket = 0;
+	      DCCWaveform::progTrack->autoPowerOff=true;
 	      return;
 	  }
-	  if (checkResets(DCCWaveform::progTrack.autoPowerOff ? 20 : 3)) return;
-          DCCWaveform::progTrack.setAckBaseline();
+	  if (checkResets(DCCWaveform::progTrack->autoPowerOff ? 20 : 3)) return;
+          DCCWaveform::progTrack->setAckBaseline();
           break;   
       case W0:    // write 0 bit 
       case W1:    // write 1 bit 
@@ -718,8 +718,8 @@ void DCC::ackManagerLoop() {
               if (Diag::ACK) DIAG(F("\nW%d cv=%d bit=%d"),opcode==W1, ackManagerCv,ackManagerBitNum); 
               byte instruction = WRITE_BIT | (opcode==W1 ? BIT_ON : BIT_OFF) | ackManagerBitNum;
               byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending(); 
+              DCCWaveform::progTrack->schedulePacket(message, sizeof(message), PROG_REPEATS);
+              DCCWaveform::progTrack->setAckPending(); 
          }
             break; 
       
@@ -728,8 +728,8 @@ void DCC::ackManagerLoop() {
 	      if (checkResets( RESET_MIN)) return;
               if (Diag::ACK) DIAG(F("\nWB cv=%d value=%d"),ackManagerCv,ackManagerByte);
               byte message[] = {cv1(WRITE_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-              DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-              DCCWaveform::progTrack.setAckPending(); 
+              DCCWaveform::progTrack->schedulePacket(message, sizeof(message), PROG_REPEATS);
+              DCCWaveform::progTrack->setAckPending(); 
             }
             break;
       
@@ -738,8 +738,8 @@ void DCC::ackManagerLoop() {
 	  if (checkResets( RESET_MIN)) return; 
           if (Diag::ACK) DIAG(F("\nVB cv=%d value=%d"),ackManagerCv,ackManagerByte);
           byte message[] = { cv1(VERIFY_BYTE, ackManagerCv), cv2(ackManagerCv), ackManagerByte};
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending(); 
+          DCCWaveform::progTrack->schedulePacket(message, sizeof(message), PROG_REPEATS);
+          DCCWaveform::progTrack->setAckPending(); 
         }
         break;
       
@@ -750,8 +750,8 @@ void DCC::ackManagerLoop() {
           if (Diag::ACK) DIAG(F("\nV%d cv=%d bit=%d"),opcode==V1, ackManagerCv,ackManagerBitNum); 
           byte instruction = VERIFY_BIT | (opcode==V0?BIT_OFF:BIT_ON) | ackManagerBitNum;
           byte message[] = {cv1(BIT_MANIPULATE, ackManagerCv), cv2(ackManagerCv), instruction };
-          DCCWaveform::progTrack.schedulePacket(message, sizeof(message), PROG_REPEATS);
-          DCCWaveform::progTrack.setAckPending(); 
+          DCCWaveform::progTrack->schedulePacket(message, sizeof(message), PROG_REPEATS);
+          DCCWaveform::progTrack->setAckPending(); 
         }
         break;
       
@@ -759,7 +759,7 @@ void DCC::ackManagerLoop() {
          {
           byte ackState=2; // keep polling
       
-          ackState=DCCWaveform::progTrack.getAck();
+          ackState=DCCWaveform::progTrack->getAck();
           if (ackState==2) return; // keep polling
           ackReceived=ackState==1;
           break;  // we have a genuine ACK result
@@ -862,9 +862,9 @@ void DCC::ackManagerLoop() {
 }
 void DCC::callback(int value) {
     ackManagerProg=NULL;  // no more steps to execute
-    if (DCCWaveform::progTrack.autoPowerOff) {
+    if (DCCWaveform::progTrack->autoPowerOff) {
       if (Diag::ACK) DIAG(F("\nAuto Prog power off"));
-      DCCWaveform::progTrack.doAutoPowerOff();
+      DCCWaveform::progTrack->doAutoPowerOff();
     }
 
     // Restore <1 JOIN> to state before BASELINE
