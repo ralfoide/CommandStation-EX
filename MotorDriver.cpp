@@ -28,40 +28,12 @@
 
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
-
-
-MotorDriver::MotorDriver(FSH * domain_Name,byte power_pin, byte current_pin, float sense_factor, unsigned int trip_milliamps) {
-  domainName=domain_Name;
+       
+MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
+                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
-
-  currentPin=current_pin;
-  if (currentPin!=UNUSED_PIN) {
-    pinMode(currentPin, INPUT);
-    senseOffset=analogRead(currentPin); // value of sensor at zero current
-  }
-
-  senseFactor=sense_factor;
-  tripMilliamps=trip_milliamps;
-  rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
-
-  signalPin=UNUSED_PIN;
-  signalPin2=UNUSED_PIN;
-  brakePin=UNUSED_PIN;
-  faultPin=UNUSED_PIN;
-  
-  if (currentPin==UNUSED_PIN) 
-    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
-  else  
-    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
-    currentPin-A0, senseOffset,rawCurrentTripValue);
-}
-
-// prog or main track constructor
-MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
-                         byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin)
-                         : MotorDriver(NULL,power_pin,current_pin,sense_factor, trip_milliamps) {
   
   signalPin=signal_pin;
   getFastPin(F("SIG"),signalPin,fastSignalPin);
@@ -85,12 +57,27 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   }
   else brakePin=UNUSED_PIN;
   
+  currentPin=current_pin;
+  if (currentPin!=UNUSED_PIN) {
+    pinMode(currentPin, INPUT);
+    senseOffset=analogRead(currentPin); // value of sensor at zero current
+  }
+
   faultPin=fault_pin;
   if (faultPin != UNUSED_PIN) {
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
   }
 
+  senseFactor=sense_factor;
+  tripMilliamps=trip_milliamps;
+  rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
+  
+  if (currentPin==UNUSED_PIN) 
+    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
+  else  
+    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
+    currentPin-A0, senseOffset,rawCurrentTripValue);
 }
 
 bool MotorDriver::isPWMCapable() {

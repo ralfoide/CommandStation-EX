@@ -50,8 +50,8 @@ class DCCWaveform {
     DCCWaveform( byte preambleBits, bool isMain);
     static void begin(MotorDriver * mainDriver, MotorDriver * progDriver);
     static void loop(bool ackManagerActive);
-    static DCCWaveform   mainTrack;
-    static DCCWaveform * progTrack;
+    static DCCWaveform  mainTrack;
+    static DCCWaveform  progTrack;
 
     void beginTrack();
     void setPowerMode(POWERMODE);
@@ -116,7 +116,6 @@ class DCCWaveform {
    static const bool signalTransform[6];
   
     static void interruptHandler();
-    static void interruptHandlerNoProgtrack();
     void interrupt2();
     void checkAck();
     

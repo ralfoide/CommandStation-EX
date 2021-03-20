@@ -382,8 +382,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             packet[i]=(byte)p[i+1];
             if (Diag::CMD) DIAG(F("packet[%d]=%d (0x%x)\n"), i, packet[i], packet[i]);
           }
-          if (opcode=='M') DCCWaveform::mainTrack.schedulePacket(packet,params,3);
-          else DCCWaveform::progTrack->schedulePacket(packet,params,3);  
+          (opcode=='M'?DCCWaveform::mainTrack:DCCWaveform::progTrack).schedulePacket(packet,params,3);  
         }
         return;
         
@@ -447,7 +446,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
 		(MotorDriver::commonFaultPin && p[0] != HASH_KEYWORD_JOIN)) // commonFaultPin prevents individual track handling
             {
                 DCCWaveform::mainTrack.setPowerMode(mode);
-                if (DCCWaveform::progTrack) DCCWaveform::progTrack->setPowerMode(mode);
+                DCCWaveform::progTrack.setPowerMode(mode);
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>"), opcode);
@@ -461,14 +460,14 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 return;
 
             case HASH_KEYWORD_PROG:
-                DCCWaveform::progTrack->setPowerMode(mode);
+                DCCWaveform::progTrack.setPowerMode(mode);
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>"), opcode);
                 return;
             case HASH_KEYWORD_JOIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
-                DCCWaveform::progTrack->setPowerMode(mode);
+                DCCWaveform::progTrack.setPowerMode(mode);
                 if (mode == POWERMODE::ON)
                 {
                     DCC::setProgTrackSyncMain(true);
@@ -544,7 +543,7 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
     case '+': // Complex Wifi interface command (not usual parse)
         if (atCommandCallback) {
           DCCWaveform::mainTrack.setPowerMode(POWERMODE::OFF);
-          if(DCCWaveform::progTrack) DCCWaveform::progTrack->setPowerMode(POWERMODE::OFF);
+          DCCWaveform::progTrack.setPowerMode(POWERMODE::OFF);
           atCommandCallback(com);
           return;
         }
@@ -739,16 +738,15 @@ bool DCCEXParser::parseD(Print *stream, int params, int p[])
         break;
 
     case HASH_KEYWORD_ACK: // <D ACK ON/OFF> <D ACK [LIMIT|MIN|MAX] Value>
-    	if (!DCCWaveform::progTrack) break; // no prog track
-    	if (params >= 3) {
+	if (params >= 3) {
 	    if (p[1] == HASH_KEYWORD_LIMIT) {
-	      DCCWaveform::progTrack->setAckLimit(p[2]);
+	      DCCWaveform::progTrack.setAckLimit(p[2]);
 	      StringFormatter::send(stream, F("\nAck limit=%dmA\n"), p[2]);
 	    } else if (p[1] == HASH_KEYWORD_MIN) {
-	      DCCWaveform::progTrack->setMinAckPulseDuration(p[2]);
+	      DCCWaveform::progTrack.setMinAckPulseDuration(p[2]);
 	      StringFormatter::send(stream, F("\nAck min=%dus\n"), p[2]);
 	    } else if (p[1] == HASH_KEYWORD_MAX) {
-	      DCCWaveform::progTrack->setMaxAckPulseDuration(p[2]);
+	      DCCWaveform::progTrack.setMaxAckPulseDuration(p[2]);
 	      StringFormatter::send(stream, F("\nAck max=%dus\n"), p[2]);
 	    }
 	} else {

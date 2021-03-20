@@ -27,7 +27,7 @@
  
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
-DCCWaveform *  DCCWaveform::progTrack=0; // maybe created later if a prog track is used
+DCCWaveform  DCCWaveform::progTrack(PREAMBLE_BITS_PROG, false);
 
 
 bool DCCWaveform::progTrackSyncMain=false; 
@@ -36,68 +36,47 @@ int  DCCWaveform::progTripValue=0;
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
   mainTrack.motorDriver=mainDriver;
-  mainDriver->domainName=F("MAIN");
+  progTrack.motorDriver=progDriver;
+  progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
   mainTrack.setPowerMode(POWERMODE::OFF);      
-  MotorDriver::usePWM= mainDriver->isPWMCapable();
-  
-  if (progDriver) {  // Optional prog track 
-    progTrack=new DCCWaveform(PREAMBLE_BITS_PROG, false);
-    progTrack->motorDriver=progDriver;
-    progDriver->domainName=F("PROG");
-    progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
-    progTrack->setPowerMode(POWERMODE::OFF);
-    // Fault pin config for odd motor boards (example pololu)
-    MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
-        && (mainDriver->getFaultPin() != UNUSED_PIN));
-    // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
-    MotorDriver::usePWM=  MotorDriver::usePWM && progDriver->isPWMCapable();
-  }
-  
+  progTrack.setPowerMode(POWERMODE::OFF);
+  // Fault pin config for odd motor boards (example pololu)
+  MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
+				 && (mainDriver->getFaultPin() != UNUSED_PIN));
+  // Only use PWM if both pins are PWM capable. Otherwise JOIN does not work
+  MotorDriver::usePWM= mainDriver->isPWMCapable() && progDriver->isPWMCapable();
   if (MotorDriver::usePWM)
     DIAG(F("\nSignal pin config: high accuracy waveform"));
   else
     DIAG(F("\nSignal pin config: normal accuracy waveform"));
-  DCCTimer::begin(progTrack ? DCCWaveform::interruptHandler : DCCWaveform::interruptHandlerNoProgtrack);     
+  DCCTimer::begin(DCCWaveform::interruptHandler);     
 }
 
 void DCCWaveform::loop(bool ackManagerActive) {
   mainTrack.checkPowerOverload(false);
-  if (progTrack) progTrack->checkPowerOverload(ackManagerActive);
+  progTrack.checkPowerOverload(ackManagerActive);
 }
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
   // member functions would be cleaner but have more overhead
   byte sigMain=signalTransform[mainTrack.state];
-  byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack->state];
+  byte sigProg=progTrackSyncMain? sigMain : signalTransform[progTrack.state];
   
   // Set the signal state for both tracks
   mainTrack.motorDriver->setSignal(sigMain);
-  progTrack->motorDriver->setSignal(sigProg);
+  progTrack.motorDriver->setSignal(sigProg);
   
   // Move on in the state engine
   mainTrack.state=stateTransform[mainTrack.state];    
-  progTrack->state=stateTransform[progTrack->state];    
+  progTrack.state=stateTransform[progTrack.state];    
 
 
   // WAVE_PENDING means we dont yet know what the next bit is
   if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
-  if (progTrack->state==WAVE_PENDING) progTrack->interrupt2();
-  else if (progTrack->ackPending) progTrack->checkAck();
+  if (progTrack.state==WAVE_PENDING) progTrack.interrupt2();
+  else if (progTrack.ackPending) progTrack.checkAck();
 
-}
-
-void DCCWaveform::interruptHandlerNoProgtrack() {
-  byte sigMain=signalTransform[mainTrack.state];
-  
-  // Set the signal state 
-  mainTrack.motorDriver->setSignal(sigMain);
-  
-  // Move on in the state engine
-  mainTrack.state=stateTransform[mainTrack.state];    
-
-  // WAVE_PENDING means we dont yet know what the next bit is
-  if (mainTrack.state==WAVE_PENDING) mainTrack.interrupt2();  
 }
 
 
