@@ -36,6 +36,7 @@ class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
+    MotorDriver(FSH * domainName, byte power_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps);
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
@@ -52,7 +53,8 @@ class MotorDriver {
     inline byte getFaultPin() {
 	return faultPin;
     }
-    
+    const FSH* domainName;
+     
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {

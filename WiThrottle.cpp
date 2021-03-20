@@ -133,8 +133,8 @@ void WiThrottle::parse(RingStream * stream, byte * cmdx) {
        case 'P':  
             if (cmd[1]=='P' && cmd[2]=='A' )  {  //PPA power mode 
               DCCWaveform::mainTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
-	      if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling
-		DCCWaveform::progTrack.setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
+	          if (MotorDriver::commonFaultPin) // commonFaultPin prevents individual track handling (will be false if no progTrack
+		          DCCWaveform::progTrack->setPowerMode(cmd[3]=='1'?POWERMODE::ON:POWERMODE::OFF);
               StringFormatter::send(stream,F("PPA%x\n"),DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON);
               lastPowerState = (DCCWaveform::mainTrack.getPowerMode()==POWERMODE::ON); //remember power state sent for comparison later
             }
@@ -395,7 +395,8 @@ void WiThrottle::getLocoCallback(int locoid) {
     char addcmd[20]={'M',stashThrottleChar,'+',LorS(locoid) };
     itoa(locoid,addcmd+4,10);
     stashInstance->multithrottle(stashStream, (byte *)addcmd);
-    DCCWaveform::progTrack.setPowerMode(POWERMODE::ON);
+    // if we got a response, prog track must exist
+    DCCWaveform::progTrack->setPowerMode(POWERMODE::ON);
     DCC::setProgTrackSyncMain(true);  // <1 JOIN> so we can drive loco away
   }
   stashStream->commit();
