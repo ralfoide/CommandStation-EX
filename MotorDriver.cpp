@@ -29,10 +29,9 @@
 bool MotorDriver::usePWM=false;
 bool MotorDriver::commonFaultPin=false;
 
-
-MotorDriver::MotorDriver(const FSH * domain_Name,byte power_pin, byte current_pin, float sense_factor, unsigned int trip_milliamps) {
-  boosterChain=NULL;
-  domainName=domain_Name;
+// Booster constructor.. no signal pins, just power control. 
+MotorDriver::MotorDriver(byte power_pin, byte current_pin, float sense_factor, unsigned int trip_milliamps) {
+  nextDriver=NULL;
   powerPin=power_pin;
   getFastPin(F("POWER"),powerPin,fastPowerPin);
   pinMode(powerPin, OUTPUT);
@@ -62,7 +61,7 @@ MotorDriver::MotorDriver(const FSH * domain_Name,byte power_pin, byte current_pi
 // prog or main track constructor
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin)
-                         : MotorDriver(NULL,power_pin,current_pin,sense_factor, trip_milliamps) {
+                         : MotorDriver(power_pin,current_pin,sense_factor, trip_milliamps) {
   
   signalPin=signal_pin;
   getFastPin(F("SIG"),signalPin,fastSignalPin);
@@ -91,12 +90,14 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
   }
-
+  progTripValue = TRIP_CURRENT_PROG/trip_milliamps; // needed only by prog track
+    
 }
 
-void MotorDriver::addBooster(MotorDriver * booster) {
-  booster->boosterChain=boosterChain;
-  boosterChain=booster;
+void MotorDriver::addBooster(byte id, MotorDriver * booster) {
+  booster->boosterId=id;
+  booster->nextDriver=nextDriver;
+  nextDriver=booster;
 }
 
 bool MotorDriver::isPWMCapable() {
@@ -189,3 +190,76 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
     result.maskLOW = ~result.maskHIGH;
     // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
 }
+
+
+void MotorDriver::setPowerMode(POWERMODE mode) {
+  powerMode=mode;
+  setPower(mode == POWERMODE::ON);
+}
+
+// useProgTripValue is true on prog track unless ack in progress or joined to main 
+void MotorDriver::checkPowerOverload(bool useProgTripValue) {
+  if (!canMeasureCurrent()) return;
+  uint16_t mymillis= millis();
+  if (mymillis - lastSampleTaken  < sampleDelay) return;
+  
+  lastSampleTaken = mymillis;
+  int tripValue= useProgTripValue? progTripValue : getRawCurrentTripValue();
+  
+  switch (powerMode) {
+    case POWERMODE::OFF:
+      sampleDelay = POWER_SAMPLE_OFF_WAIT;
+      break;
+    case POWERMODE::ON:
+      lastCurrent=getCurrentRaw();
+      if (lastCurrent < tripValue) {
+        sampleDelay = POWER_SAMPLE_ON_WAIT;
+        if(power_good_counter<100) power_good_counter++;
+        else  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
+        break;
+        } 
+      // We have an overload... it may be new or it may be because we are retyring  
+      setPowerMode(POWERMODE::OVERLOAD);
+      power_good_counter=0;
+      sampleDelay = power_sample_overload_wait;
+
+      // put a diag on the serial
+      unsigned int mA=raw2mA(lastCurrent);
+      unsigned int maxmA=raw2mA(tripValue);
+      if (boosterId==255) DIAG(F("\n*** PROG TRACK OVERLOAD current=%d max=%d  offtime=%d ***\n"), mA, maxmA, sampleDelay);
+      else DIAG(F("\n*** TRACK %d OVERLOAD current=%d max=%d  offtime=%d ***\n"),boosterId, mA, maxmA, sampleDelay);
+      power_sample_overload_wait = (power_sample_overload_wait >= 10000) ? 10000: power_sample_overload_wait * 2;
+      break;
+   
+    case POWERMODE::OVERLOAD:
+      // Try setting it back on after the OVERLOAD_WAIT
+      setPowerMode(POWERMODE::ON);
+      sampleDelay = POWER_SAMPLE_ON_WAIT;
+      break;
+      
+    default:
+      sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
+  }
+}
+
+/*****      
+ *       FAULT PIN STUFF.... temporaraily removed for clarity 
+ *if (lastCurrent < 0) {
+    // We have a fault pin condition to take care of
+    lastCurrent = -lastCurrent;
+    setPowerMode(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
+    if (MotorDriver::commonFaultPin) {
+        if (lastCurrent <= tripValue) {
+    setPowerMode(POWERMODE::ON); // maybe other track
+        }
+        // Write this after the fact as we want to turn on as fast as possible
+        // because we don't know which output actually triggered the fault pin
+        DIAG(F("\n*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+    } else {
+        DIAG(F("\n*** %S FAULT PIN ACTIVE - OVERLOAD ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+        if (lastCurrent < tripValue) {
+      lastCurrent = tripValue; // exaggerate
+        }
+    }
+      }
+*************/      

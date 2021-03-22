@@ -22,6 +22,9 @@
 
 // Virtualised Motor shield 1-track hardware Interface
 
+enum class POWERMODE : byte { OFF, ON, OVERLOAD };
+
+
 #ifndef UNUSED_PIN     // sync define with the one in MotorDrivers.h
 #define UNUSED_PIN 127 // inside int8_t
 #endif
@@ -36,7 +39,7 @@ class MotorDriver {
   public:
     MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin, 
                 byte current_pin, float senseFactor, unsigned int tripMilliamps, byte faultPin);
-    MotorDriver(const FSH * domainName, byte power_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps);
+    MotorDriver(byte power_pin, byte current_pin, float senseFactor, unsigned int tripMilliamps);
     virtual void setPower( bool on);
     virtual void setSignal( bool high);
     virtual void setBrake( bool on);
@@ -51,11 +54,32 @@ class MotorDriver {
     static bool usePWM;
     static bool commonFaultPin; // This is a stupid motor shield which has only a common fault pin for both outputs
     inline byte getFaultPin() {
-	return faultPin;
+	    return faultPin;
     }
-    const FSH* domainName;
-    MotorDriver * boosterChain;
-    void addBooster(MotorDriver * booster); 
+    void checkPowerOverload(bool useProgTripValue);
+    void setPowerMode(POWERMODE mode);
+    POWERMODE getPowerMode() {return powerMode;}  
+    // Wait times for power management. Unit: milliseconds
+const int  POWER_SAMPLE_ON_WAIT = 100;
+const int  POWER_SAMPLE_OFF_WAIT = 1000;
+const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+
+    // current sampling
+    POWERMODE powerMode;
+    int progTripValue;
+    unsigned long lastSampleTaken;
+    unsigned int sampleDelay;
+    int  lastCurrent;
+ 
+    // Trip current for programming track, 250mA. Change only if you really
+    // need to be non-NMRA-compliant because of decoders that are not either.
+    static const int TRIP_CURRENT_PROG=250;
+    unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+    unsigned int power_good_counter = 0;
+
+    byte boosterId;   //0=main, 1,2,3,4  255=PROG
+    MotorDriver * nextDriver;
+    void addBooster(byte id,MotorDriver * booster); 
     
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);

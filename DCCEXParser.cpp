@@ -486,13 +486,6 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         DCC::setThrottle(0,1,1); // this broadcasts speed 1(estop) and sets all reminders to speed 1. 
         return;
 
-    case 'c': // SEND METER RESPONSES <c>
-        //                               <c MeterName value C/V unit min max res warn>
-        StringFormatter::send(stream, F("<c CurrentMAIN %d C Milli 0 %d 1 %d>"), DCCWaveform::mainTrack.getCurrentmA(), 
-            DCCWaveform::mainTrack.getMaxmA(), DCCWaveform::mainTrack.getTripmA());
-        StringFormatter::send(stream, F("<a %d>"), DCCWaveform::mainTrack.get1024Current()); //'a' message deprecated, remove once JMRI 4.22 is available
-        return;
-
     case 'Q': // SENSORS <Q>
         Sensor::printAll(stream);
         return;

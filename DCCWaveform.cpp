@@ -32,27 +32,25 @@ DCCWaveform *  DCCWaveform::progTrack=0; // maybe created later if a prog track 
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
-int  DCCWaveform::progTripValue=0;
+
   
 void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver,
                     MotorDriver * booster1, MotorDriver * booster2, MotorDriver * booster3, MotorDriver * booster4)
                     {
   mainTrack.motorDriver=mainDriver;
-  mainDriver->domainName=F("MAIN");
   mainTrack.setPowerMode(POWERMODE::OFF);      
   MotorDriver::usePWM= mainDriver->isPWMCapable();
 
   // Chain boosters together with main Motor Driver (reverse order add gets chain in real order)
-  if (booster4) mainDriver->addBooster(booster4);
-  if (booster3) mainDriver->addBooster(booster3);
-  if (booster2) mainDriver->addBooster(booster2);
-  if (booster1) mainDriver->addBooster(booster1);
+  if (booster4) mainDriver->addBooster(4,booster4);
+  if (booster3) mainDriver->addBooster(3,booster3);
+  if (booster2) mainDriver->addBooster(2,booster2);
+  if (booster1) mainDriver->addBooster(1,booster1);
   
   if (progDriver) {  // Optional prog track 
     progTrack=new DCCWaveform(PREAMBLE_BITS_PROG, false);
+    progDriver->boosterId=255; // Not really a booster
     progTrack->motorDriver=progDriver;
-    progDriver->domainName=F("PROG");
-    progTripValue = progDriver->mA2raw(TRIP_CURRENT_PROG); // need only calculate once hence static
     progTrack->setPowerMode(POWERMODE::OFF);
     // Fault pin config for odd motor boards (example pololu)
     MotorDriver::commonFaultPin = ((mainDriver->getFaultPin() == progDriver->getFaultPin())
@@ -69,8 +67,8 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver,
 }
 
 void DCCWaveform::loop(bool ackManagerActive) {
-  mainTrack.checkPowerOverload(false);
-  if (progTrack) progTrack->checkPowerOverload(ackManagerActive);
+  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->checkPowerOverload(false);
+  if (progTrack) progTrack->motorDriver->checkPowerOverload( !ackManagerActive && !progTrackSyncMain && !progTrackBoosted);
 }
 
 void DCCWaveform::interruptHandler() {
@@ -129,84 +127,22 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
   requiredPreambles = preambleBits+1;  
   bytes_sent = 0;
   bits_sent = 0;
-  sampleDelay = 0;
-  lastSampleTaken = millis();
   ackPending=false;
 }
 
-POWERMODE DCCWaveform::getPowerMode() {
-  return powerMode;
-}
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-  powerMode = mode;
   bool ison = (mode == POWERMODE::ON);
-  motorDriver->setPower( ison);
+  // sets power on for all boosters on this track
+  for (MotorDriver * driver=motorDriver;driver;driver=driver->nextDriver) driver->setPowerMode(mode);
+}
+
+POWERMODE DCCWaveform::getPowerMode() {
+  return motorDriver->getPowerMode();
 }
 
 
-void DCCWaveform::checkPowerOverload(bool ackManagerActive) {
-  if (millis() - lastSampleTaken  < sampleDelay) return;
-  lastSampleTaken = millis();
-  int tripValue= motorDriver->getRawCurrentTripValue();
-  if (!isMainTrack && !ackManagerActive && !progTrackSyncMain && !progTrackBoosted)
-    tripValue=progTripValue;
-  
-  switch (powerMode) {
-    case POWERMODE::OFF:
-      sampleDelay = POWER_SAMPLE_OFF_WAIT;
-      break;
-    case POWERMODE::ON:
-      // Check current
-      lastCurrent=motorDriver->getCurrentRaw();
-      if (lastCurrent < 0) {
-	  // We have a fault pin condition to take care of
-	  lastCurrent = -lastCurrent;
-	  setPowerMode(POWERMODE::OVERLOAD); // Turn off, decide later how fast to turn on again
-	  if (MotorDriver::commonFaultPin) {
-	      if (lastCurrent <= tripValue) {
-		setPowerMode(POWERMODE::ON); // maybe other track
-	      }
-	      // Write this after the fact as we want to turn on as fast as possible
-	      // because we don't know which output actually triggered the fault pin
-	      DIAG(F("\n*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
-	  } else {
-	      DIAG(F("\n*** %S FAULT PIN ACTIVE - OVERLOAD ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
-	      if (lastCurrent < tripValue) {
-		  lastCurrent = tripValue; // exaggerate
-	      }
-	  }
-      }
-      if (lastCurrent < tripValue) {
-        sampleDelay = POWER_SAMPLE_ON_WAIT;
-	if(power_good_counter<100)
-	  power_good_counter++;
-	else
-	  if (power_sample_overload_wait>POWER_SAMPLE_OVERLOAD_WAIT) power_sample_overload_wait=POWER_SAMPLE_OVERLOAD_WAIT;
-      } else {
-        setPowerMode(POWERMODE::OVERLOAD);
-        unsigned int mA=motorDriver->raw2mA(lastCurrent);
-        unsigned int maxmA=motorDriver->raw2mA(tripValue);
-	power_good_counter=0;
-        sampleDelay = power_sample_overload_wait;
-        DIAG(F("\n*** %S TRACK POWER OVERLOAD current=%d max=%d  offtime=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), mA, maxmA, sampleDelay);
-	if (power_sample_overload_wait >= 10000)
-	    power_sample_overload_wait = 10000;
-	else
-	    power_sample_overload_wait *= 2;
-      }
-      break;
-    case POWERMODE::OVERLOAD:
-      // Try setting it back on after the OVERLOAD_WAIT
-      setPowerMode(POWERMODE::ON);
-      sampleDelay = POWER_SAMPLE_ON_WAIT;
-      // Debug code....
-      DIAG(F("\n*** %S TRACK POWER RESET delay=%d ***\n"), isMainTrack ? F("MAIN") : F("PROG"), sampleDelay);
-      break;
-    default:
-      sampleDelay = 999; // cant get here..meaningless statement to avoid compiler warning.
-  }
-}
+
 // For each state of the wave  nextState=stateTransform[currentState] 
 const WAVE_STATE DCCWaveform::stateTransform[]={
    /* WAVE_START   -> */ WAVE_PENDING,
