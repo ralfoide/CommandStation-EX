@@ -50,6 +50,9 @@ class DCCWaveform {
     void beginTrack();
     void setPowerMode(POWERMODE mode);
     POWERMODE getPowerMode();
+    static void describeGauges(Print * stream);
+    static void listRawGauges(Print * stream);
+    
     void checkPowerOverload(bool ackManagerActive);
     void schedulePacket(const byte buffer[], byte byteCount, byte repeats);
     volatile bool packetPending;
@@ -60,6 +63,9 @@ class DCCWaveform {
     byte getAck();               //prog track only 0=NACK, 1=ACK 2=keep waiting
     static bool progTrackSyncMain;  // true when prog track is a siding switched to main
     static bool progTrackBoosted;   // true when prog track is not current limited
+    static uint16_t lastGaugeTime;
+    static uint16_t gaugeSampleTime; // millis between <g > responses 
+
     inline void doAutoPowerOff() {
 	if (autoPowerOff) {
 	    motorDriver->setPowerMode(POWERMODE::OFF);

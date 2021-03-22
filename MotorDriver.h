@@ -58,11 +58,12 @@ class MotorDriver {
     }
     void checkPowerOverload(bool useProgTripValue);
     void setPowerMode(POWERMODE mode);
-    POWERMODE getPowerMode() {return powerMode;}  
+    POWERMODE getPowerMode() {return powerMode;} 
+    void describeGauge(Print * stream); 
     // Wait times for power management. Unit: milliseconds
-const int  POWER_SAMPLE_ON_WAIT = 100;
-const int  POWER_SAMPLE_OFF_WAIT = 1000;
-const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
+    const int  POWER_SAMPLE_ON_WAIT = 100;
+    const int  POWER_SAMPLE_OFF_WAIT = 1000;
+    const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
 
     // current sampling
     POWERMODE powerMode;
@@ -74,7 +75,7 @@ const int  POWER_SAMPLE_OVERLOAD_WAIT = 20;
     // Trip current for programming track, 250mA. Change only if you really
     // need to be non-NMRA-compliant because of decoders that are not either.
     static const int TRIP_CURRENT_PROG=250;
-    unsigned long power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
+    int power_sample_overload_wait = POWER_SAMPLE_OVERLOAD_WAIT;
     unsigned int power_good_counter = 0;
 
     byte boosterId;   //0=main, 1,2,3,4  255=PROG

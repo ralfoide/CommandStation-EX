@@ -69,7 +69,14 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver,
 void DCCWaveform::loop(bool ackManagerActive) {
   for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->checkPowerOverload(false);
   if (progTrack) progTrack->motorDriver->checkPowerOverload( !ackManagerActive && !progTrackSyncMain && !progTrackBoosted);
+  uint16_t myMillis=millis();
+  if (myMillis-lastGaugeTime > gaugeSampleTime) {
+    lastGaugeTime=myMillis;
+    listRawGauges(&Serial);
+  }
 }
+uint16_t DCCWaveform::lastGaugeTime=0;
+uint16_t DCCWaveform::gaugeSampleTime=10000; // millis between <g > responses 
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack
@@ -132,13 +139,26 @@ DCCWaveform::DCCWaveform( byte preambleBits, bool isMain) {
 
 
 void DCCWaveform::setPowerMode(POWERMODE mode) {
-  bool ison = (mode == POWERMODE::ON);
   // sets power on for all boosters on this track
   for (MotorDriver * driver=motorDriver;driver;driver=driver->nextDriver) driver->setPowerMode(mode);
 }
 
 POWERMODE DCCWaveform::getPowerMode() {
   return motorDriver->getPowerMode();
+}
+void DCCWaveform::describeGauges(Print * stream) {
+  if (progTrack) progTrack->motorDriver->describeGauge(stream);
+  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->describeGauge(stream);
+}
+
+void DCCWaveform::listRawGauges(Print * stream) {
+  stream->print("<g ");
+  if (progTrack) stream->print(progTrack->motorDriver->lastCurrent);
+  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) { 
+        stream->print(' '); 
+        stream->print(driver->lastCurrent);
+        }
+   stream->print('>');     
 }
 
 
