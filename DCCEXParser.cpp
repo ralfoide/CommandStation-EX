@@ -459,9 +459,9 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
             case 2:
             case 3:
             case 4:
-                 // power a specific main track booster
-                 DCCWaveform::setBoosterPowerMode(p[0],mode);
-                 StringFormatter::send(stream, F("<p%c %d>"), opcode,p[0]);
+                // power a specific main track booster
+                DCCWaveform::setBoosterPowerMode(p[0],mode);
+                StringFormatter::send(stream, F("<p%c %d>"), opcode,p[0]);
                 return;
  
             case HASH_KEYWORD_MAIN:
@@ -471,12 +471,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                 return;
 
             case HASH_KEYWORD_PROG:
-              DCC::setProgTrackSyncMain(false);
-              DCCWaveform::progTrack->setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
+                DCC::setProgTrackSyncMain(false);
+                DCCWaveform::progTrack->setPowerMode(mode);
+		            if (mode == POWERMODE::OFF) DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>"), opcode);
                 return;
+                
             case HASH_KEYWORD_JOIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 DCCWaveform::progTrack->setPowerMode(mode);
@@ -503,10 +503,12 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         Sensor::printAll(stream);
         return;
 
-    case 's': // <s>
+    case 's': // <s [pollsecs]>
         StringFormatter::send(stream, F("<p%d>"), DCCWaveform::mainTrack.getPowerMode() == POWERMODE::ON);
         StringFormatter::send(stream, F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
-        DCCWaveform::describeGauges(stream);
+        if (params==1) {
+          DCCWaveform::describeGauges(stream,p[0]);
+        }
         Turnout::printAll(stream); //send all Turnout states
         Output::printAll(stream);  //send all Output  states
         Sensor::printAll(stream);  //send all Sensor  states

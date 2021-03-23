@@ -52,7 +52,7 @@ class DCCWaveform {
     static void setBoosterPowerMode(byte boosterId,POWERMODE mode);
                  
     POWERMODE getPowerMode();
-    static void describeGauges(Print * stream);
+    static void describeGauges(Print * stream, int sampleTimeSeconds);
     static void listRawGauges(Print * stream);
     
     void checkPowerOverload(bool ackManagerActive);

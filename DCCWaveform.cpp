@@ -70,7 +70,7 @@ void DCCWaveform::loop(bool ackManagerActive) {
   for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->checkPowerOverload(false);
   if (progTrack) progTrack->motorDriver->checkPowerOverload( !ackManagerActive && !progTrackSyncMain && !progTrackBoosted);
   uint16_t myMillis=millis();
-  if (myMillis-lastGaugeTime > gaugeSampleTime) {
+  if (gaugeSampleTime && (myMillis-lastGaugeTime > gaugeSampleTime)) {
     lastGaugeTime=myMillis;
     listRawGauges(&Serial);
   }
@@ -154,20 +154,19 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
 POWERMODE DCCWaveform::getPowerMode() {
   return motorDriver->getPowerMode();
 }
-void DCCWaveform::describeGauges(Print * stream) {
+void DCCWaveform::describeGauges(Print * stream, int sampleTimeSeconds) {
+  gaugeSampleTime=1000*sampleTimeSeconds;
   if (progTrack) progTrack->motorDriver->describeGauge(stream);
   for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->describeGauge(stream);
 }
 
 void DCCWaveform::listRawGauges(Print * stream) {
   stream->print("<g ");
-  if (progTrack) stream->print(progTrack->motorDriver->lastCurrent);
-  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) { 
-        stream->print(' '); 
-        stream->print(driver->lastCurrent);
-        }
-   stream->print('>');     
+  if (progTrack) progTrack->motorDriver->printRawCurrent(stream);
+  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) driver->printRawCurrent(stream); 
+  stream->print('>');     
 }
+
 
 
 

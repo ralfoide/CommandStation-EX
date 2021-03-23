@@ -59,7 +59,8 @@ class MotorDriver {
     void checkPowerOverload(bool useProgTripValue);
     void setPowerMode(POWERMODE mode);
     POWERMODE getPowerMode() {return powerMode;} 
-    void describeGauge(Print * stream); 
+    void describeGauge(Print * stream);
+    void printRawCurrent(Print * stream); 
     // Wait times for power management. Unit: milliseconds
     const int  POWER_SAMPLE_ON_WAIT = 100;
     const int  POWER_SAMPLE_OFF_WAIT = 1000;
