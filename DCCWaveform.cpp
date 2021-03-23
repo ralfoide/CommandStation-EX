@@ -142,7 +142,15 @@ void DCCWaveform::setPowerMode(POWERMODE mode) {
   // sets power on for all boosters on this track
   for (MotorDriver * driver=motorDriver;driver;driver=driver->nextDriver) driver->setPowerMode(mode);
 }
-
+ void DCCWaveform::setBoosterPowerMode(byte boosterId,POWERMODE mode) {
+  for (MotorDriver * driver=mainTrack.motorDriver;driver;driver=driver->nextDriver) {
+    if (driver->boosterId==boosterId) {
+      driver->setPowerMode(mode);
+      break;
+    }
+  }
+ }
+   
 POWERMODE DCCWaveform::getPowerMode() {
   return motorDriver->getPowerMode();
 }

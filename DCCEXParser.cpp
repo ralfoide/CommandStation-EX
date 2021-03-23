@@ -436,32 +436,43 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
         }
         break;
 
-    case '1': // POWERON <1   [MAIN|PROG]>
-    case '0': // POWEROFF <0 [MAIN | PROG] >
+    case '1': // POWERON <1   [MAIN | PROG | boosterid]>
+    case '0': // POWEROFF <0 [MAIN | PROG | boosterid] >
         if (params > 1)
             break;
         {
             POWERMODE mode = opcode == '1' ? POWERMODE::ON : POWERMODE::OFF;
-            DCC::setProgTrackSyncMain(false); // Only <1 JOIN> will set this on, all others set it off
             if (params == 0 ||
 		(MotorDriver::commonFaultPin && p[0] != HASH_KEYWORD_JOIN)) // commonFaultPin prevents individual track handling
-            {
+            {                                    
+                DCC::setProgTrackSyncMain(false);
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 if (DCCWaveform::progTrack) DCCWaveform::progTrack->setPowerMode(mode);
-		if (mode == POWERMODE::OFF)
-		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
+		            if (mode == POWERMODE::OFF) DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c>"), opcode);
                 return;
             }
             switch (p[0])
             {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                 // power a specific main track booster
+                 DCCWaveform::setBoosterPowerMode(p[0],mode);
+                 StringFormatter::send(stream, F("<p%c %d>"), opcode,p[0]);
+                return;
+ 
             case HASH_KEYWORD_MAIN:
                 DCCWaveform::mainTrack.setPowerMode(mode);
                 StringFormatter::send(stream, F("<p%c MAIN>"), opcode);
+                DCC::setProgTrackSyncMain(false);
                 return;
 
             case HASH_KEYWORD_PROG:
-                DCCWaveform::progTrack->setPowerMode(mode);
+              DCC::setProgTrackSyncMain(false);
+              DCCWaveform::progTrack->setPowerMode(mode);
 		if (mode == POWERMODE::OFF)
 		  DCC::setProgTrackBoost(false);  // Prog track boost mode will not outlive prog track off
                 StringFormatter::send(stream, F("<p%c PROG>"), opcode);
@@ -474,8 +485,10 @@ void DCCEXParser::parse(Print *stream, byte *com, RingStream * ringStream)
                     DCC::setProgTrackSyncMain(true);
                     StringFormatter::send(stream, F("<p1 JOIN>"), opcode);
                 }
-                else
+                else {
+                    DCC::setProgTrackSyncMain(false);
                     StringFormatter::send(stream, F("<p0>"));
+                }
                 return;
             }
             break;

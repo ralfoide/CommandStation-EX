@@ -49,6 +49,8 @@ class DCCWaveform {
 
     void beginTrack();
     void setPowerMode(POWERMODE mode);
+    static void setBoosterPowerMode(byte boosterId,POWERMODE mode);
+                 
     POWERMODE getPowerMode();
     static void describeGauges(Print * stream);
     static void listRawGauges(Print * stream);
