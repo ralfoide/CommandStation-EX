@@ -246,20 +246,16 @@ void MotorDriver::checkPowerOverload(bool useProgTripValue) {
 
 
  void MotorDriver::describeGauge(Print * stream) {
-  if (canMeasureCurrent()) {
     if (boosterId==255) StringFormatter::send(stream,F("<G 0 PROG %f %d A>"),senseFactor,rawCurrentTripValue);
     else               StringFormatter::send(stream,F("<G %d TRACK%d %f %d A>"),boosterId+1,boosterId,senseFactor,rawCurrentTripValue);  
-  }
  }
 
- void MotorDriver::printRawCurrent(Print * stream) {
-  if (canMeasureCurrent()) {
-      if (powerMode==POWERMODE::OVERLOAD) stream->print(F("X "));
-      else {
-        stream->print(lastCurrent);
-        stream->print(' '); 
-      }
-  }
+void MotorDriver::printRawCurrent(Print * stream) {
+  if (powerMode==POWERMODE::OVERLOAD) stream->print(F("X "));
+  else {
+    stream->print(lastCurrent);
+    stream->print(' '); 
+   }
  }
    
 /*****      
