@@ -53,9 +53,9 @@ MotorDriver::MotorDriver(byte power_pin, byte current_pin, float sense_factor, u
   faultPin=UNUSED_PIN;
   
   if (currentPin==UNUSED_PIN) 
-    DIAG(F("\nMotorDriver ** WARNING ** No current or short detection\n"));  
+    DIAG(F("MotorDriver ** WARNING ** No current or short detection"));  
   else  
-    DIAG(F("\nMotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d\n"),
+    DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
 }
 
@@ -180,7 +180,7 @@ int MotorDriver::mA2raw( unsigned int mA) {
 }
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
-    // DIAG(F("\nMotorDriver %S Pin=%d,"),type,pin);
+    // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
     (void) type; // avoid compiler warning if diag not used above. 
     uint8_t port = digitalPinToPort(pin);
     if (input)
@@ -189,7 +189,7 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
     result.maskLOW = ~result.maskHIGH;
-    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x\n"),port, result.inout,input,result.maskHIGH);
+    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }
 
 
@@ -228,9 +228,9 @@ void MotorDriver::checkPowerOverload(bool useProgTripValue) {
       {
         unsigned int mA=raw2mA(lastCurrent);
         unsigned int maxmA=raw2mA(tripValue);
-        if (boosterId==255) DIAG(F("\n*** PROG TRACK OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***\n"),
+        if (boosterId==255) DIAG(F("*** PROG TRACK OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***"),
                                  lastCurrent,mA, tripValue,maxmA, sampleDelay);
-        else DIAG(F("\n*** TRACK %d OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***\n"),
+        else DIAG(F("*** TRACK %d OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***"),
                   boosterId, lastCurrent,mA, tripValue,maxmA, sampleDelay);
       }
       power_sample_overload_wait = (power_sample_overload_wait >= 10000) ? 10000: power_sample_overload_wait * 2;
@@ -273,9 +273,9 @@ void MotorDriver::printRawCurrent(Print * stream) {
         }
         // Write this after the fact as we want to turn on as fast as possible
         // because we don't know which output actually triggered the fault pin
-        DIAG(F("\n*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+        DIAG(F("*** COMMON FAULT PIN ACTIVE - TOGGLED POWER on %S ***"), isMainTrack ? F("MAIN") : F("PROG"));
     } else {
-        DIAG(F("\n*** %S FAULT PIN ACTIVE - OVERLOAD ***\n"), isMainTrack ? F("MAIN") : F("PROG"));
+        DIAG(F("*** %S FAULT PIN ACTIVE - OVERLOAD ***"), isMainTrack ? F("MAIN") : F("PROG"));
         if (lastCurrent < tripValue) {
       lastCurrent = tripValue; // exaggerate
         }

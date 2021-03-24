@@ -60,9 +60,9 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver,
   }
   
   if (MotorDriver::usePWM)
-    DIAG(F("\nSignal pin config: high accuracy waveform"));
+    DIAG(F("Signal pin config: high accuracy waveform"));
   else
-    DIAG(F("\nSignal pin config: normal accuracy waveform"));
+    DIAG(F("Signal pin config: normal accuracy waveform"));
   DCCTimer::begin(progTrack ? DCCWaveform::interruptHandler : DCCWaveform::interruptHandlerNoProgtrack);     
 }
 
@@ -271,7 +271,7 @@ void DCCWaveform::setAckBaseline() {
       if (isMainTrack) return;
       int baseline=motorDriver->getCurrentRaw();
       ackThreshold= baseline + motorDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("\nACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %dus and %dus"),
+      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %dus and %dus"),
 			  baseline,motorDriver->raw2mA(baseline),
 			  ackThreshold,motorDriver->raw2mA(ackThreshold),
                           minAckPulseDuration, maxAckPulseDuration);
@@ -289,7 +289,7 @@ void DCCWaveform::setAckPending() {
 
 byte DCCWaveform::getAck() {
       if (ackPending) return (2);  // still waiting
-      if (Diag::ACK) DIAG(F("\n%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
+      if (Diag::ACK) DIAG(F("%S after %dmS max=%d/%dmA pulse=%duS"),ackDetected?F("ACK"):F("NO-ACK"), ackCheckDuration, 
            ackMaxCurrent,motorDriver->raw2mA(ackMaxCurrent), ackPulseDuration);
       if (ackDetected) return (1); // Yes we had an ack
       return(0);  // pending set off but not detected means no ACK.   

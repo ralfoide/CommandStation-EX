@@ -38,10 +38,12 @@ bool Diag::LCN=false;
 
  
 void StringFormatter::diag( const FSH* input...) {
-  if (!diagSerial) return;    
+  if (!diagSerial) return;
+  diagSerial->print(F("\n<*"));    
   va_list args;
   va_start(args, input);
   send2(diagSerial,input,args);
+  diagSerial->print('>');
 }
 
 void StringFormatter::lcd(byte row, const FSH* input...) {
