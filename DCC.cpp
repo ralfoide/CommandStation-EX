@@ -68,14 +68,6 @@ void DCC::setJoinRelayPin(byte joinRelayPin) {
   }
 }
 
-void DCC::setJoinRelayPin(byte joinRelayPin) {
-  joinRelay=joinRelayPin;
-  if (joinRelay!=UNUSED_PIN) {
-    pinMode(joinRelay,OUTPUT);
-    digitalWrite(joinRelay,LOW);  // LOW is relay disengaged
-  }
-}
-
 void DCC::setThrottle( uint16_t cab, uint8_t tSpeed, bool tDirection)  {
   byte speedCode = (tSpeed & 0x7F)  + tDirection * 128; 
   setThrottle2(cab, speedCode);
