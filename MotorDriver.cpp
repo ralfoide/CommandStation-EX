@@ -45,7 +45,8 @@ MotorDriver::MotorDriver(byte power_pin, byte current_pin, float sense_factor, u
   senseFactor=sense_factor;
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
-
+  lastCurrent=0;
+  
   signalPin=UNUSED_PIN;
   signalPin2=UNUSED_PIN;
   brakePin=UNUSED_PIN;
@@ -90,8 +91,8 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     getFastPin(F("FAULT"),faultPin, 1 /*input*/, fastFaultPin);
     pinMode(faultPin, INPUT);
   }
-  progTripValue = TRIP_CURRENT_PROG/trip_milliamps; // needed only by prog track
-    
+  progTripValue = TRIP_CURRENT_PROG/sense_factor; // NMRA prog track default 250mA limit
+  boosterId=0;   
 }
 
 void MotorDriver::addBooster(byte id, MotorDriver * booster) {
@@ -204,14 +205,14 @@ void MotorDriver::checkPowerOverload(bool useProgTripValue) {
   if (mymillis - lastSampleTaken  < sampleDelay) return;
   
   lastSampleTaken = mymillis;
-  int tripValue= useProgTripValue? progTripValue : getRawCurrentTripValue();
-  
+  int tripValue= useProgTripValue? progTripValue : rawCurrentTripValue;
+  lastCurrent=getCurrentRaw();
+   
   switch (powerMode) {
     case POWERMODE::OFF:
       sampleDelay = POWER_SAMPLE_OFF_WAIT;
       break;
     case POWERMODE::ON:
-      lastCurrent=getCurrentRaw();
       if (lastCurrent < tripValue) {
         sampleDelay = POWER_SAMPLE_ON_WAIT;
         if(power_good_counter<100) power_good_counter++;
@@ -227,8 +228,10 @@ void MotorDriver::checkPowerOverload(bool useProgTripValue) {
       {
         unsigned int mA=raw2mA(lastCurrent);
         unsigned int maxmA=raw2mA(tripValue);
-        if (boosterId==255) DIAG(F("\n*** PROG TRACK OVERLOAD current=%d max=%d  offtime=%d ***\n"), mA, maxmA, sampleDelay);
-        else DIAG(F("\n*** TRACK %d OVERLOAD current=%d max=%d  offtime=%d ***\n"),boosterId, mA, maxmA, sampleDelay);
+        if (boosterId==255) DIAG(F("\n*** PROG TRACK OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***\n"),
+                                 lastCurrent,mA, tripValue,maxmA, sampleDelay);
+        else DIAG(F("\n*** TRACK %d OVERLOAD current=%d/%dmA max=%d/%dmA  offtime=%dmS ***\n"),
+                  boosterId, lastCurrent,mA, tripValue,maxmA, sampleDelay);
       }
       power_sample_overload_wait = (power_sample_overload_wait >= 10000) ? 10000: power_sample_overload_wait * 2;
       break;
@@ -246,8 +249,8 @@ void MotorDriver::checkPowerOverload(bool useProgTripValue) {
 
 
  void MotorDriver::describeGauge(Print * stream) {
-    if (boosterId==255) StringFormatter::send(stream,F("<G 0 PROG %f %d A>"),senseFactor,rawCurrentTripValue);
-    else               StringFormatter::send(stream,F("<G %d TRACK%d %f %d A>"),boosterId+1,boosterId,senseFactor,rawCurrentTripValue);  
+    if (boosterId==255) StringFormatter::send(stream,F("<G 0 PROG %f %d mA>"),senseFactor,rawCurrentTripValue);
+    else               StringFormatter::send(stream,F("<G %d TRACK%d %f %d mA>"),boosterId+1,boosterId,senseFactor,rawCurrentTripValue);  
  }
 
 void MotorDriver::printRawCurrent(Print * stream) {

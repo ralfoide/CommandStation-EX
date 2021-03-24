@@ -76,7 +76,7 @@ void DCCWaveform::loop(bool ackManagerActive) {
   }
 }
 uint16_t DCCWaveform::lastGaugeTime=0;
-uint16_t DCCWaveform::gaugeSampleTime=10000; // millis between <g > responses 
+uint16_t DCCWaveform::gaugeSampleTime=0; // millis between <g > responses, 0= no gauges requested 
 
 void DCCWaveform::interruptHandler() {
   // call the timer edge sensitive actions for progtrack and maintrack

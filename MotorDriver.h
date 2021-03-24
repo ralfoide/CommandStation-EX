@@ -46,9 +46,6 @@ class MotorDriver {
     virtual int  getCurrentRaw();
     virtual unsigned int raw2mA( int raw);
     virtual int mA2raw( unsigned int mA);
-    inline int getRawCurrentTripValue() {
-	    return rawCurrentTripValue;
-    }
     bool isPWMCapable();
     bool canMeasureCurrent();
     static bool usePWM;
