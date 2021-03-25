@@ -52,12 +52,6 @@ EthernetInterface::EthernetInterface()
 {
     byte mac[6];
     DCCTimer::getSimulatedMacAddress(mac);
-    DIAG(F("+++++ Ethernet Setup. Simulatd mac="));
-    for (byte i=0;i<sizeof(mac); i++) {
-        StringFormatter.send(diagSerial,F("%s%x:"),mac[i] < 0x10 ? "0" : "", mac[i]);
-    }
-    DIAG(F(""));
-    
     connected=false;
    
     #ifdef IP_ADDRESS
@@ -65,17 +59,17 @@ EthernetInterface::EthernetInterface()
     #else
     if (Ethernet.begin(mac) == 0)
     {
-        DIAG(F("begin FAILED"));
+        DIAG(F("Ethernet.begin FAILED"));
         return;
     } 
     #endif
     DIAG(F("begin OK."));
      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      DIAG(F("shield not found"));
+      DIAG(F("Ethernet shield not found"));
       return;
     }
     if (Ethernet.linkStatus() == LinkOFF) {
-      DIAG(F("cable not connected"));
+      DIAG(F("Ethernet cable not connected"));
       return;
     }
     
@@ -139,7 +133,7 @@ void EthernetInterface::loop()
             {
                 // On accept() the EthernetServer doesn't track the client anymore
                 // so we store it in our client array
-                if (Diag::ETHERNET) DIAG(F("%d"),socket);
+                if (Diag::ETHERNET) DIAG(F("Socket %d"),socket);
                 clients[socket] = client;
                 break;
             }
@@ -154,11 +148,11 @@ void EthernetInterface::loop()
         
         int available=clients[socket].available();
         if (available > 0) {
-            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d,count="), socket, available);
+            if (Diag::ETHERNET)  DIAG(F("Ethernet: available socket=%d,avail=%d"), socket, available);
             // read bytes from a client
             int count = clients[socket].read(buffer, MAX_ETH_BUFFER);
             buffer[count] = '\0'; // terminate the string properly
-            if (Diag::ETHERNET) DIAG(F("%d:%e"), socket,buffer);
+            if (Diag::ETHERNET) DIAG(F(",count=%d:%e"), socket,buffer);
             // execute with data going directly back
             outboundRing->mark(socket); 
             CommandDistributor::parse(socket,buffer,outboundRing);
@@ -172,7 +166,7 @@ void EthernetInterface::loop()
    for (int socket = 0; socket<MAX_SOCK_NUM; socket++) {
      if (clients[socket] && !clients[socket].connected()) {
       clients[socket].stop();
-      if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d"), socket);             
+      if (Diag::ETHERNET)  DIAG(F("Ethernet: disconnect %d "), socket);             
      }
     }
     

@@ -347,7 +347,7 @@ bool WifiInterface::checkForOK( const unsigned int timeout, const FSH * waitfor,
       int ch = wifiStream->read();
       if (echo) {
         if (escapeEcho) StringFormatter::printEscape( ch); /// THIS IS A DIAG IN DISGUISE
-        else DIAG(F("%c"), ch); 
+        else StringFormatter::diagSerial->print((char)ch); 
       }
       if (ch != GETFLASH(locator)) locator = (char *)waitfor;
       if (ch == GETFLASH(locator)) {

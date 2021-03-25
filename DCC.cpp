@@ -51,7 +51,7 @@ void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriv
        MotorDriver * booster1, MotorDriver * booster2, MotorDriver * booster3, MotorDriver * booster4
 ) {
   shieldName=(FSH *)motorShieldName;
-  DIAG(F("<iDCC-EX V-%S / %S / %S G-%S>"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
+  DIAG(F("DCC-EX V-%S / %S / %S G-%S"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
