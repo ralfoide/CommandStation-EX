@@ -29,11 +29,19 @@ enum class POWERMODE : byte { OFF, ON, OVERLOAD };
 #define UNUSED_PIN 127 // inside int8_t
 #endif
 
+#if defined(__IMXRT1062__)
+struct FASTPIN {
+  volatile uint32_t *inout;
+  uint32_t maskHIGH;  
+  uint32_t maskLOW;  
+};
+#else
 struct FASTPIN {
   volatile uint8_t *inout;
   uint8_t maskHIGH;  
   uint8_t maskLOW;  
 };
+#endif
 
 class MotorDriver {
   public:
@@ -93,5 +101,16 @@ class MotorDriver {
     int senseOffset;
     unsigned int tripMilliamps;
     int rawCurrentTripValue;
+#if defined(ARDUINO_TEENSY40) || defined(ARDUINO_TEENSY41)
+    static bool disableInterrupts() {
+      uint32_t primask;
+      __asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
+      __disable_irq();
+      return (primask == 0) ? true : false;
+    }
+    static void enableInterrupts(bool doit) {
+      if (doit) __enable_irq();
+    }
+#endif
 };
 #endif

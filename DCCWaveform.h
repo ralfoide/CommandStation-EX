@@ -19,6 +19,7 @@
  */
 #ifndef DCCWaveform_h
 #define DCCWaveform_h
+
 #include "MotorDriver.h"
 
 

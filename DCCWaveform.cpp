@@ -24,11 +24,9 @@
 #include "DCCTimer.h"
 #include "DIAG.h"
 #include "freeMemory.h"
- 
 
 DCCWaveform  DCCWaveform::mainTrack(PREAMBLE_BITS_MAIN, true);
 DCCWaveform *  DCCWaveform::progTrack=0; // maybe created later if a prog track is used
-
 
 bool DCCWaveform::progTrackSyncMain=false; 
 bool DCCWaveform::progTrackBoosted=false; 
