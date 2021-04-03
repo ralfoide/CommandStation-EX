@@ -43,6 +43,7 @@ struct Sensor{
   static bool remove(int);  
   static void checkAll(Print *);
   static void printAll(Print *);
+  static unsigned int lastReadCycle; // low 16 bits of micros, holds up to 64 milliseconds
 }; // Sensor
 
 #endif
