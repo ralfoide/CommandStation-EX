@@ -22,16 +22,25 @@
 #include <Arduino.h>
 #include "DCC.h"
 #include "LCN.h"
+#include "IODevice.h"
 
 const byte STATUS_ACTIVE=0x80; // Flag as activated
 const byte STATUS_PWM=0x40; // Flag as a PWM turnout
 const byte STATUS_PWMPIN=0x3F; // PWM  pin 0-63
 const int  LCN_TURNOUT_ADDRESS=-1;  // spoof dcc address -1 indicates a LCN turnout
 struct TurnoutData {
-   int id;
-   uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  
-   union {uint8_t subAddress; char moveAngle;}; //DCC  sub addrerss or PWM difference from inactiveAngle  
-   union {int address; int inactiveAngle;}; // DCC address or PWM servo angle 
+  int id;
+  uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  
+  union {
+    struct {
+      uint8_t subAddress;
+      int address;
+    };
+    struct {
+      uint8_t moveAngle;
+      uint16_t inactiveAngle;
+    };
+  }; // DCC address or PWM servo angle 
 };
 
 class Turnout {
@@ -46,6 +55,7 @@ class Turnout {
   static bool isActive(int);
   static void load();
   static void store();
+  static Turnout *create(int id, VPIN vpin);
   static Turnout *create(int id , int address , int subAddress);
   static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle);
   static Turnout *create(int id);

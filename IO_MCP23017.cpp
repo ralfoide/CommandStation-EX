@@ -22,15 +22,16 @@
 #include "DIAG.h"
 
 void MCP23017::create(VPIN firstID, int nPins, uint8_t I2CAddress) {
-    addDevice(new MCP23017(firstID, nPins, I2CAddress));
-  }
+  MCP23017 *dev = new MCP23017();
+  dev->_firstID = firstID;
+  dev->_nPins = max(nPins, 16);
+  dev->_I2CAddress = I2CAddress;
+
+  addDevice(dev);
+}
   
 // Constructor
-MCP23017::MCP23017(VPIN firstID, int nPins, uint8_t I2CAddress) {
-  _firstID = firstID;
-  _nPins = max(nPins, 16);
-  _I2CAddress = I2CAddress;
-}
+MCP23017::MCP23017() {}
 
 // Device-specific initialisation
 void MCP23017::_begin() { 

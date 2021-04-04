@@ -22,15 +22,15 @@
 #include "DIAG.h"
 
 void PCA9685::create(VPIN firstID, int nPins, uint8_t I2CAddress) {
-  addDevice(new PCA9685(firstID, nPins, I2CAddress));
+  PCA9685 *dev = new PCA9685(); 
+  dev->_firstID = firstID;
+  dev->_nPins = max(nPins, 16);
+  dev->_I2CAddress = I2CAddress;
+  addDevice(dev);
 }
 
 // Constructor
-PCA9685::PCA9685(VPIN firstID, int nPins, uint8_t I2CAddress) {
-  _firstID = firstID;
-  _nPins = max(nPins, 16);
-  _I2CAddress = I2CAddress;
-}
+PCA9685::PCA9685() {}
 
 // Device-specific initialisation
 void PCA9685::_begin() {
@@ -75,7 +75,7 @@ int PCA9685::_read(VPIN vpin) {
 }
 
 void PCA9685::_display() {
-  DIAG(F("PCA9685 VPins:%d-%d I2C:x%x"), _I2CAddress, _firstID, _firstID+_nPins-1);
+  DIAG(F("PCA9685 VPins:%d-%d I2C:x%x"), _firstID, _firstID+_nPins-1, _I2CAddress);
 }
 
 // Internal helper function for this device

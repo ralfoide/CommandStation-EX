@@ -21,22 +21,24 @@
 #include "IODevice.h"
 #include "DIAG.h"
 
-void DCCAccessoryDecoder::create(VPIN firstID, int nPins, int DCCAddress, int DCCSubaddress) {
-  addDevice(new DCCAccessoryDecoder(firstID, nPins, DCCAddress, DCCSubaddress));
+void DCCAccessoryDecoder::create(VPIN vpin, int DCCAddress, int DCCSubaddress) {
+  IODevice::remove(vpin);
+  DCCAccessoryDecoder *dev = new DCCAccessoryDecoder();
+  dev->_firstID = vpin;
+  dev->_nPins = 1;
+  dev->_DCCAddress = DCCAddress;
+  dev->_DCCSubaddress= DCCSubaddress;
+  addDevice(dev);
 }
-void DCCAccessoryDecoder::create(VPIN firstID, int nPins, int DCCLinearAddress) {
+
+void DCCAccessoryDecoder::create(VPIN vpin, int DCCLinearAddress) {
   int DCCAddress = (DCCLinearAddress-1)/4;
   int DCCSubaddress = DCCLinearAddress - DCCAddress*4;
-  addDevice(new DCCAccessoryDecoder(firstID, nPins, DCCAddress, DCCSubaddress));
+  create(vpin, DCCAddress, DCCSubaddress);
 }
 
 // Constructor
-DCCAccessoryDecoder::DCCAccessoryDecoder(VPIN firstID, int nPins, int DCCAddress, int DCCSubaddress) {
-  _firstID = firstID;
-  _nPins = nPins;
-  _DCCAddress = DCCAddress;
-  _DCCSubaddress= DCCSubaddress;
-}
+DCCAccessoryDecoder::DCCAccessoryDecoder() {}
 
 // Device-specific write function.
 void DCCAccessoryDecoder::_write(VPIN id, int state) {
@@ -48,8 +50,7 @@ void DCCAccessoryDecoder::_write(VPIN id, int state) {
 }
 
 void DCCAccessoryDecoder::_display() {
-  #ifdef DIAG_IO
-  DIAG(F("DCC Addr:%d VPins:%d-%d"), (int)_DCCAddress, (int)_firstID, (int)_firstID+_nPins-1);
-  #endif
+  DIAG(F("DCC VPins:%d-%d Addr:%d/%d "), 
+    (int)_firstID, (int)_firstID+_nPins-1, (int)_DCCAddress, (int)_DCCSubaddress);
 }
 

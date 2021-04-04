@@ -44,20 +44,8 @@ public:
     SP_Bounce = 4    // For semaphores/turnouts with a bit of bounce!!
   };
 
-  static void create(VPIN vpin, int devicePin, int activePosition, int inactivePosition, enum ServoProfile profile) {
-    addDevice(new PWM(vpin, devicePin, activePosition, inactivePosition, profile));
-  }
-  
-  PWM(VPIN vpin, int devicePin, int activePosition, int inactivePosition, enum ServoProfile profile) {
-    _firstID = vpin;
-    _nPins = 1;
-    _devicePin = devicePin;
-    _activePosition = activePosition;
-    _inactivePosition = inactivePosition;
-    _profile = profile;
-    _currentPosition = _targetPosition = _inactivePosition;
-    _lastRefreshTime = millis();
-  }
+  static void create(VPIN vpin, int devicePin, int activePosition, int inactivePosition, enum ServoProfile profile);  
+  PWM() { }
 
   void _loop();
   void _write(VPIN vpin, int value);

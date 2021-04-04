@@ -89,6 +89,8 @@ void setup()
       RMFT::begin();
   #endif
 
+  IODevice::begin();
+
   #if __has_include ( "mySetup.h")
         #define SETUP(cmd) serialParser.parse(F(cmd))  
         #include "mySetup.h"

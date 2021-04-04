@@ -22,14 +22,14 @@
 #include "I2CManager.h"
 
 // Constructor
-PCF8574::PCF8574(VPIN firstID, int nPins, uint8_t I2CAddress) {
-  _firstID = firstID;
-  _nPins = max(nPins, 8);
-  _I2CAddress = I2CAddress;
-}
+PCF8574::PCF8574() {}
 
 void PCF8574::create(VPIN firstID, int nPins, uint8_t I2CAddress) {
-  addDevice(new PCF8574(firstID, nPins, I2CAddress));
+  PCF8574 *dev = new PCF8574();
+  dev->_firstID = firstID;
+  dev->_nPins = max(nPins, 8);
+  dev->_I2CAddress = I2CAddress;
+  addDevice(dev);
 }
 
 void PCF8574::_begin() {

@@ -31,6 +31,12 @@ bool IODevice::owns(VPIN id) {
 }
 
 // Static functions
+void IODevice::begin() {
+  // Initialise the IO subsystem
+  ArduinoPins::create(2, 48);  // Reserve pins numbered 2-49 for direct access
+  PCA9685::create(100, 16, 0x40); // Predefine one PCA9685 module on vpins 100-115.
+}
+
 void IODevice::loop() {
   // Call every device's loop function in turn.
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
@@ -41,6 +47,32 @@ void IODevice::loop() {
 void IODevice::DumpAll() {
   for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
     dev->_display();
+  }
+}
+
+bool IODevice::exists(VPIN vpin) {
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) return true;
+  }
+  return false;
+}
+
+void IODevice::remove(VPIN vpin) {
+  // Only works if the object is exclusive, i.e. only one VPIN.
+  IODevice *previousDev = 0;
+  for (IODevice *dev = _firstDevice; dev != 0; dev = dev->_nextDevice) {
+    if (dev->owns(vpin)) {
+      // Found object
+      if (dev->_nPins == 1) {
+        // Now unlink
+        if (!previousDev)
+          _firstDevice = dev->_nextDevice;
+        else
+          previousDev->_nextDevice = dev->_nextDevice;
+        delete dev;
+      }
+    }
+    previousDev = dev;
   }
 }
 
@@ -121,11 +153,13 @@ void ArduinoPins::_write(VPIN id, int value) {
   volatile uint8_t *portRegister = portInputRegister(port);
   volatile uint8_t *portModeRegister = portModeRegister(port);
   uint8_t mask = digitalPinToBitMask(pin);
+  noInterrupts();
   if (value) 
     *portRegister |= mask;
   else  
     *portRegister &= ~mask;
   *portModeRegister |= mask;  // Set to write mode
+  interrupts();
 #endif
 }
 
@@ -140,8 +174,10 @@ int ArduinoPins::_read(VPIN id) {
   volatile uint8_t *portRegister = portInputRegister(port);
   volatile uint8_t *portModeRegister = portModeRegister(port);
   uint8_t mask = digitalPinToBitMask(pin);
+  noInterrupts();
   *portModeRegister &= ~mask; // Set to read mode
   *portRegister |= mask;   // Enable pull-up
+  interrupts();
   int value = (*portRegister & mask) ? 1 : 0; // Read value
 #endif
   #ifdef DIAG_IO

@@ -50,11 +50,13 @@ class IODevice;  // Pre-declare to allow references within definition.
 class IODevice {
 public:
   // Static functions to find the device and invoke its member functions
+  static void begin();
   static void write(VPIN id, int value);
   static bool read(VPIN id);
   static void loop();
   static void DumpAll();
-
+  static bool exists(VPIN vpin);
+  static void remove(VPIN vpin);
   
 protected:
   // Method to perform initialisation of the device (optionally implemented within device class)
@@ -72,6 +74,9 @@ protected:
   virtual void _loop() {};
   // Method for displaying info on DIAG output (optionally implemented within device class)
   virtual void _display();
+
+  // Destructor
+  virtual ~IODevice() {};
   
   // Common object fields.
   VPIN _firstID;
@@ -99,7 +104,7 @@ public:
 
 private:
   // Constructor
-  PCA9685(VPIN firstID, int nPins, uint8_t I2CAddress);
+  PCA9685();
   // Device-specific initialisation
   void _begin();
   // Device-specific write function.
@@ -137,7 +142,7 @@ public:
 
 private:
   // Constructor
-  PCF8574(VPIN firstID, int nPins, uint8_t I2CAddress);  
+  PCF8574();  
   // Device-specific initialisation
   void _begin();
   // Device-specific write function.
@@ -162,7 +167,7 @@ public:
   
 private:
   // Constructor
-  MCP23017(VPIN firstID, int nPins, uint8_t I2CAddress);
+  MCP23017();
   // Device-specific initialisation
   void _begin();
   // Device-specific write function.
@@ -185,16 +190,14 @@ private:
  
 class DCCAccessoryDecoder: public IODevice {
 public:
-  static void create(VPIN firstID, int nPins, int DCCAddress, int DCCSubaddress);
-  static void create(VPIN firstID, int nPins, int DCCLinearAddress);
+  static void create(VPIN firstID, int DCCAddress, int DCCSubaddress);
+  static void create(VPIN firstID, int DCCLinearAddress);
 
 private:
   // Constructor
-  DCCAccessoryDecoder(VPIN firstID, int nPins, int DCCAddress, int DCCSubaddress);
+  DCCAccessoryDecoder();
   // Device-specific write function.
   void _write(VPIN id, int value);
-  // Device-specific read function.
-  int _read(VPIN id);
   void _display();
   int _DCCAddress;
   int _DCCSubaddress;
@@ -206,7 +209,7 @@ private:
  *  Example of an IODevice subclass for arduino input/output pins.
  */
 
-// TBD: Implement optional pullups (currently enabled by default).
+// TBD: Implement optional pullups (currently permanently enabled by default).
  
 class ArduinoPins: public IODevice {
 public:

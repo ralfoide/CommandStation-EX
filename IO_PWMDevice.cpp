@@ -21,6 +21,21 @@
 #include "FSH.h"
 #include "DIAG.h"
 
+void PWM::create(VPIN vpin, int devicePin, int activePosition, int inactivePosition, enum ServoProfile profile) {
+  IODevice::remove(vpin);  // Delete any existing device that conflicts.
+  PWM *dev = new PWM();
+  dev->_firstID = vpin;
+  dev->_nPins = 1;
+  dev->_devicePin = devicePin;
+  dev->_activePosition = activePosition;
+  dev->_inactivePosition = inactivePosition;
+  dev->_profile = profile;
+  dev->_currentPosition = dev->_targetPosition = dev->_inactivePosition;
+  dev->_lastRefreshTime = millis();
+  addDevice(dev);
+}
+
+
 // Periodically update current servo position if it is moving.
 // It's not worth going faster than 20ms as this is the pulse 
 // frequency for the PWM Servo driver.  50ms is acceptable.
@@ -68,7 +83,8 @@ void PWM::_write(VPIN vpin, int value) {
 }
 
 void PWM::_display() {
-  DIAG(F("PWM VPin:%d->VPin:%d"), _firstID, _devicePin);
+  DIAG(F("PWM VPin:%d->VPin:%d Range:%d-%d"), 
+    _firstID, _devicePin, _activePosition, _inactivePosition);
 }
 
 // Private function to reposition servo
