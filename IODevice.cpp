@@ -22,9 +22,6 @@
 #include "DIAG.h" 
 #include "FSH.h"
 
-#define FASTIO  // Use direct port manipulation instead of digitalRead/Write.
-
-
 // Method to check whether the id corresponds to this device
 bool IODevice::owns(VPIN id) {
   return (id >= _firstID && id < _firstID + _nPins);
@@ -34,7 +31,10 @@ bool IODevice::owns(VPIN id) {
 void IODevice::begin() {
   // Initialise the IO subsystem
   ArduinoPins::create(2, 48);  // Reserve pins numbered 2-49 for direct access
-  PCA9685::create(100, 16, 0x40); // Predefine one PCA9685 module on vpins 100-115.
+  // On devices with 32k flash, don't predefine PCA9685.  It can be added in mysetup,h
+  #if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_AVR_UNO)
+  PCA9685::create(IODevice::firstServoVPin, 16, 0x40); // Predefine one PCA9685 module
+  #endif
 }
 
 void IODevice::loop() {
@@ -145,41 +145,15 @@ void ArduinoPins::_write(VPIN id, int value) {
   #ifdef DIAG_IO
   DIAG(F("Arduino Write Pin:%d Val:%d"), pin, value);
   #endif
-#if !defined(FASTIO)
   digitalWrite(pin, value);
   pinMode(pin, OUTPUT);
-#else
-  uint8_t port = digitalPinToPort(pin);
-  volatile uint8_t *portRegister = portInputRegister(port);
-  volatile uint8_t *portModeRegister = portModeRegister(port);
-  uint8_t mask = digitalPinToBitMask(pin);
-  noInterrupts();
-  if (value) 
-    *portRegister |= mask;
-  else  
-    *portRegister &= ~mask;
-  *portModeRegister |= mask;  // Set to write mode
-  interrupts();
-#endif
 }
 
 // Device-specific read function.
 int ArduinoPins::_read(VPIN id) {
   int pin = id;
-#if !defined(FASTIO)
   pinMode(pin, INPUT_PULLUP);
   int value = digitalRead(pin);
-#else
-  uint8_t port = digitalPinToPort(pin);
-  volatile uint8_t *portRegister = portInputRegister(port);
-  volatile uint8_t *portModeRegister = portModeRegister(port);
-  uint8_t mask = digitalPinToBitMask(pin);
-  noInterrupts();
-  *portModeRegister &= ~mask; // Set to read mode
-  *portRegister |= mask;   // Enable pull-up
-  interrupts();
-  int value = (*portRegister & mask) ? 1 : 0; // Read value
-#endif
   #ifdef DIAG_IO
   //DIAG(F("Arduino Read Pin:%d Value:%d"), pin, value);
   #endif

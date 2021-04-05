@@ -21,6 +21,19 @@
 #include "I2CManager.h"
 #include "DIAG.h"
 
+// REGISTER ADDRESSES
+static const byte PCA9685_MODE1=0x00;      // Mode Register 
+static const byte PCA9685_FIRST_SERVO=0x06;  /** low byte first servo register ON*/
+static const byte PCA9685_PRESCALE=0xFE;     /** Prescale register for PWM output frequency */
+// MODE1 bits
+static const byte MODE1_SLEEP=0x10;   /**< Low power mode. Oscillator off */
+static const byte MODE1_AI=0x20;      /**< Auto-Increment enabled */
+static const byte MODE1_RESTART=0x80; /**< Restart enabled */
+
+static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
+static const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
+static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
+
 void PCA9685::create(VPIN firstID, int nPins, uint8_t I2CAddress) {
   PCA9685 *dev = new PCA9685(); 
   dev->_firstID = firstID;
@@ -43,7 +56,9 @@ void PCA9685::_begin() {
   writeRegister(PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
   writeRegister(PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
   writeRegister(PCA9685_MODE1, MODE1_AI);
-  writeRegister(PCA9685_MODE1, MODE1_RESTART | MODE1_AI);    
+  writeRegister(PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
+  // In theory, we should wait 500us before sending any other commands, to allow
+  // the PWM oscillator to get running.  However, we don't.    
 }
 
 // Device-specific write function.  This device is PWM, and the value written
@@ -60,18 +75,6 @@ void PCA9685::_write(VPIN vpin, int value) {
   uint8_t error = I2CManager.write(_I2CAddress, buffer, sizeof(buffer));
   //if (error) DIAG(F("Error I2C:%x, errCode=%d"), _I2CAddress, error);
   (void)error;
-}
-
-// Device-specific read function (not supported).
-int PCA9685::_read(VPIN vpin) {
-  int result = 0;
-  #ifdef DIAG_IO
-  int pin = vpin - _firstID;
-  DIAG(F("PCA9685 VPin:%d Read I2C:x%x/%d Value:%d"), (int)vpin, (int)_I2CAddress, pin, result);
-  #else
-  (void)vpin;  // suppress compiler warning
-  #endif
-  return result;
 }
 
 void PCA9685::_display() {

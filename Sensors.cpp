@@ -87,7 +87,7 @@ void Sensor::checkAll(Print *stream){
   if (firstSensor == NULL) return;
   if (readingSensor == NULL) { 
     unsigned int thisTime = micros(); // Up to 65ms time count
-    if (thisTime - lastReadCycle >= 1000) {
+    if (thisTime - lastReadCycle >= cycleInterval) {
       // At least 1ms elapsed since last read cycle, initiate new read cycle
       readingSensor = firstSensor;
       lastReadCycle = thisTime;
@@ -105,7 +105,7 @@ void Sensor::checkAll(Print *stream){
       //                                          readingSensor->latchdelay, readingSensor->data.snum);
       readingSensor->latchdelay=0; // reset
     }
-  } else if (readingSensor->latchdelay < 2) { // byte, max 255, good value unknown yet
+  } else if (readingSensor->latchdelay < minReadCount-1) { // byte, max 255, good value unknown yet
     // change but first increase anti-jitter counter
     readingSensor->latchdelay++;
   } else {
@@ -155,7 +155,7 @@ Sensor *Sensor::create(int snum, int pin, int pullUp){
   tt->data.pullUp=(pullUp==0?LOW:HIGH);
   tt->active=false;
   tt->latchdelay=0;
-  // TBD: Pullup enabled by default, and can't currently be turned off.  Doesn't stop a lower value external pull-up being added.
+  // TODO: Pullup enabled by default, and can't currently be turned off.  Doesn't stop a lower value external pull-up being added.
   //digitalWrite(pin,pullUp);   // don't use Arduino's internal pull-up resistors for external infrared sensors --- each sensor must have its own 1K external pull-up resistor
 
   return tt;

@@ -18,7 +18,7 @@
  */
 
 /* 
- *  Class PWM for servos and variable brightness LEDs.  Well, anything
+ *  Class Analogue for servos and variable brightness LEDs.  Well, anything
  *  that can be driven by a Pulse Width Modulated signal, really...
  *  In fact, all the class does is converts the values of '1' and 
  *  '0' on the input pin into the values corresponding to 'activePosition' 
@@ -27,48 +27,48 @@
  *  attached to the output pin decides whether it's PWM or whatever!
  */
 
-#ifndef pwmdevice_h
-#define pwmdevice_h
+#ifndef analoguedevice_h
+#define analoguedevice_h
 
 #include "IODevice.h"
 #include "FSH.h"
 
-class PWM : public IODevice {
+class Analogue : public IODevice {
 public:
 
-  enum ServoProfile {
-    SP_Instant = 0,  // Moves immediately between positions
-    SP_Fast = 1,     // Takes around 500ms end-to-end
-    SP_Medium = 2,   // 1 second end-to-end
-    SP_Slow = 3,     // 2 seconds end-to-end
-    SP_Bounce = 4    // For semaphores/turnouts with a bit of bounce!!
+  enum ProfileType {
+    Instant = 0,  // Moves immediately between positions
+    Fast = 1,     // Takes around 500ms end-to-end
+    Medium = 2,   // 1 second end-to-end
+    Slow = 3,     // 2 seconds end-to-end
+    Bounce = 4    // For semaphores/turnouts with a bit of bounce!!
   };
 
-  static void create(VPIN vpin, int devicePin, int activePosition, int inactivePosition, enum ServoProfile profile);  
-  PWM() { }
+  static void create(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, enum ProfileType profile);  
+  Analogue() { }
 
   void _loop();
   void _write(VPIN vpin, int value);
   void _display();
   
 private:
-  // Reposition servo
-  void updateServoPosition();
+  // Recalculate output
+  void updatePosition();
         
-  int _devicePin = 0;
+  VPIN _devicePin = 0;
   int _activePosition;
   int _inactivePosition;
   int _currentPosition;
-  int _state = 0;
-  int _stepNumber = 0;
-  static const int numSteps = 30;
-  static const byte PROGMEM profile[][numSteps];
+  byte _state = 0;
+  byte _stepNumber = 0;
+  static const byte numSteps = 30;
+  static const byte PROGMEM profile[];
   int _targetPosition;
   int _increment;
-  enum ServoProfile _profile;
+  enum ProfileType _profile;
   const unsigned int refreshInterval = 50; // refresh every 50ms
   unsigned int _lastRefreshTime; // low 16-bits of millis() count.
 
 };
 
-#endif // pwmdevice_h
+#endif // analoguedevice_h

@@ -26,17 +26,9 @@
 #include "FSH.h"
 #include "I2CManager.h"
 
-#define USE_BIGVPINS
-#ifdef USE_BIGVPINS
-  typedef uint16_t VPIN;
-  #define VPIN_MAX 65534
-  #define VPIN_NONE 65535
-#else
-  typedef uint8_t VPIN;
-  #define VPIN_MAX 254
-  #define VPIN_NONE 255
-#endif
-
+typedef uint16_t VPIN;
+#define VPIN_MAX 65534
+#define VPIN_NONE 65535
 
 /*
  * IODevice class
@@ -57,6 +49,11 @@ public:
   static void DumpAll();
   static bool exists(VPIN vpin);
   static void remove(VPIN vpin);
+
+  // When a turnout needs to allocate a vpin as its output, it allocates one using ID+turnoutVpinOffset.
+  static const VPIN turnoutVpinOffset = 300; 
+  // VPIN of first PCA9685 servo controller pin.  
+  static const VPIN firstServoVPin = 100;
   
 protected:
   // Method to perform initialisation of the device (optionally implemented within device class)
@@ -109,26 +106,12 @@ private:
   void _begin();
   // Device-specific write function.
   void _write(VPIN id, int value);
-  // Device-specific read function.
-  int _read(VPIN id);
   void _display();
   void writeRegister(byte reg, byte value);
 
   uint8_t _I2CAddress;
   uint8_t _currentPortState;
 
-    // REGISTER ADDRESSES
-  const byte PCA9685_MODE1=0x00;      // Mode Register 
-  const byte PCA9685_FIRST_SERVO=0x06;  /** low byte first servo register ON*/
-  const byte PCA9685_PRESCALE=0xFE;     /** Prescale register for PWM output frequency */
-  // MODE1 bits
-  const byte MODE1_SLEEP=0x10;   /**< Low power mode. Oscillator off */
-  const byte MODE1_AI=0x20;      /**< Auto-Increment enabled */
-  const byte MODE1_RESTART=0x80; /**< Restart enabled */
-  
-  const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our purposes  */
-  const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
-  const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +135,7 @@ private:
   void _display();
 
   uint8_t _I2CAddress;
-  uint8_t _currentPortState;
+  uint8_t _currentPortState = 0x00; 
 };
 
 
@@ -174,10 +157,19 @@ private:
   void _write(VPIN id, int value);
   // Device-specific read function.
   int _read(VPIN id);
+  // Helper functions
+  void writeRegister(uint8_t reg, uint8_t value) ;
+  uint8_t readRegister(uint8_t reg);
 
   uint8_t _I2CAddress;
-  uint8_t _currentPortState;
+  uint8_t _currentPortStateA = 0;
+  uint8_t _currentPortStateB = 0;
+  uint8_t _portModeA = 0xff; // Read mode
+  uint8_t _portModeB = 0xff; // Read mode
+
   enum {
+    IODIRA = 0x00,
+    IODIRB = 0x01,
     GPIOA = 0x12,
     GPIOB = 0x13
   };
@@ -209,7 +201,7 @@ private:
  *  Example of an IODevice subclass for arduino input/output pins.
  */
 
-// TBD: Implement optional pullups (currently permanently enabled by default).
+// TODO: Implement pullup configuration (currently permanently enabled by default).
  
 class ArduinoPins: public IODevice {
 public:
@@ -230,6 +222,6 @@ private:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "IO_PWMDevice.h"
+#include "IO_AnalogueDevice.h"
 
 #endif // iodevice_h

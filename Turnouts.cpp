@@ -26,6 +26,7 @@
 #endif
 
 // print all turnout states to stream
+// TODO: Echo sensible values for servo turnouts.
 void Turnout::printAll(Print *stream){
   for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
     StringFormatter::send(stream, F("<H %d %d>\n"), tt->data.id, (tt->data.tStatus & STATUS_ACTIVE)!=0);
@@ -63,7 +64,7 @@ void Turnout::activate(bool state) {
     data.tStatus|=STATUS_ACTIVE;
   else
     data.tStatus &= ~STATUS_ACTIVE;
-  IODevice::write(300+data.id, state);
+  IODevice::write(IODevice::turnoutVpinOffset+data.id, state);
   EEStore::store();
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -102,11 +103,13 @@ void Turnout::load(){
     EEPROM.get(EEStore::pointer(),data);
     if (data.tStatus & STATUS_PWM) {
       // Unpack PWM values
-      int inactiveAngle = (data.inactiveAngle >> 4) & 0xfff;
-      int activeAngle = ((data.inactiveAngle & 0xf) << 8) | data.moveAngle;
-      tt=create(data.id,data.tStatus & STATUS_PWMPIN, activeAngle, inactiveAngle);
-    } else 
-      tt=create(data.id,data.address,data.subAddress);
+      int inactivePosition = (data.positionWord >> 4) & 0xfff;
+      int activePosition = ((data.positionWord & 0xf) << 8) | data.positionByte;
+      tt=create(data.id,data.tStatus & STATUS_PWMPIN, activePosition, inactivePosition);
+    } else if (data.address==VPIN_TURNOUT_ADDRESS) 
+      tt=create(data.id,data.subAddress);  // VPIN-based turnout
+    else
+      tt=create(data.id,data.address,data.subAddress); // DCC/LCN-based turnout
     tt->data.tStatus=data.tStatus;
     EEStore::advance(sizeof(tt->data));
 #ifdef EESTOREDEBUG
@@ -139,12 +142,12 @@ void Turnout::store(){
 // Method for associating a turnout id with a virtual pin in IODevice space.
 // The actual creation and configuration of the pin must be done elsewhere,
 // e.g. in mySetup.h during startup of the CS.
+// TODO: Vpin is currently a byte so limited to 0-255.
 Turnout *Turnout::create(int id, VPIN vpin){
   Turnout *tt=create(id);
-  tt->data.address = vpin;
+  tt->data.address = VPIN_TURNOUT_ADDRESS;
   tt->data.tStatus=0;
-  tt->data.address = 0;
-  tt->data.subAddress = 0;
+  tt->data.subAddress = vpin;
   return(tt);
 }
 
@@ -154,21 +157,22 @@ Turnout *Turnout::create(int id, int add, int subAdd){
   tt->data.address=add;
   tt->data.subAddress=subAdd;
   tt->data.tStatus=0;
-  DCCAccessoryDecoder::create(300+id, add, subAdd);
+  DCCAccessoryDecoder::create(IODevice::turnoutVpinOffset+id, add, subAdd);
   return(tt);
 }
 
 // Legacy method for creating a PCA9685 PWM turnout.
-// Pin here is numbered from 0 within PCA9685, i.e. vpins 100-115 in first PCA9685.
-Turnout *Turnout::create(int id, byte pin, int activeAngle, int inactiveAngle){
+// Pin here is numbered from 0 within PCA9685.
+Turnout *Turnout::create(int id, byte pin, int activePosition, int inactivePosition){
   Turnout *tt=create(id);
   tt->data.tStatus= STATUS_PWM | (pin &  STATUS_PWMPIN);
-  // Pack active/inactive angles into available space.
-  tt->data.inactiveAngle = (inactiveAngle << 4) | (activeAngle >> 8); 
-                                  // inactiveAngle | high 4 bits of activeAngle.
-  tt->data.moveAngle = activeAngle & 0xff;  // low 8 bits of activeAngle.
-  // Create PWM object
-  PWM::create(300+id, 100+pin, activeAngle, inactiveAngle, PWM::SP_Medium);
+  // Pack active/inactive positions into available space.
+  tt->data.positionWord = (inactivePosition << 4) | (activePosition >> 8); 
+                                  // inactivePosition | high 4 bits of activePosition.
+  tt->data.positionByte = activePosition & 0xff;  // low 8 bits of activeAngle.
+  // Create PWM interface object 
+  Analogue::create(IODevice::turnoutVpinOffset+id, IODevice::firstServoVPin+pin, 
+    activePosition, inactivePosition, Analogue::Fast);
   return(tt);
 }
 
@@ -182,7 +186,7 @@ Turnout *Turnout::create(int id){
     }
   turnoutlistHash++;
   return tt;
-  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //

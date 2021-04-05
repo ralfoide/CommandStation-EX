@@ -40,13 +40,15 @@ void PCF8574::_begin() {
 // Device-specific write function.
 void PCF8574::_write(VPIN vpin, int value) {
   int pin = vpin -_firstID;
+  #ifdef DIAG_IO
   DIAG(F("PCF8574 Write I2C:x%x Pin:%d Value:%d"), (int)_I2CAddress, (int)vpin, value);
+  #endif
   uint8_t mask = 1 << pin;
   if (value) 
     _currentPortState |= mask;
   else
     _currentPortState &= ~mask;
-  I2CManager.write(_I2CAddress, 1, _currentPortState);
+  I2CManager.write(_I2CAddress, &_currentPortState, 1);
 }
 
 // Device-specific read function.
@@ -58,16 +60,18 @@ int PCF8574::_read(VPIN vpin) {
   // To enable the pin to be read, write a '1' to it first.  The connected
   // equipment should pull the input down to ground.
   _currentPortState |= mask;
-  I2CManager.read(_I2CAddress, &inBuffer, 1, 1, _currentPortState);
+  I2CManager.read(_I2CAddress, &inBuffer, 1, &_currentPortState, 1);
   if (inBuffer & mask) 
     result = 1;
   else
     result = 0;
+  #ifdef DIAG_IO
   //DIAG(F("PCF8574 Read I2C:x%x Pin:%d Value:%d"), (int)_I2CAddress, (int)pin, result);
+  #endif
   return result;
 }
 
 void PCF8574::_display() {
-  DIAG(F("PCF8574 Addr:x%x VPins:%d-%d"), (int)_I2CAddress, (int)_firstID, (int)_firstID+_nPins-1);
+  DIAG(F("PCF8574 VPins:%d-%d I2C:x%x"), (int)_firstID, (int)_firstID+_nPins-1, (int)_I2CAddress);
 }
 

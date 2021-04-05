@@ -51,13 +51,8 @@ void I2CManagerClass::forceClock(uint32_t speed) {
 // Check if specified I2C address is responding.
 // Returns 0 if OK, or error code.
 uint8_t I2CManagerClass::checkAddress(uint8_t address) {
-  begin();
   Wire.beginTransmission(address);
   return Wire.endTransmission();
-}
-
-bool I2CManagerClass::exists(uint8_t address) {
-  return checkAddress(address)==0;
 }
 
 // Write a complete transmission to I2C using a supplied buffer of data
@@ -73,7 +68,6 @@ uint8_t I2CManagerClass::write_P(uint8_t address, const uint8_t buffer[], uint8_
   memcpy_P(ramBuffer, buffer, size);
   return write(address, ramBuffer, size);
 }
-  
 
 // Write a complete transmission to I2C using a list of data 
 uint8_t I2CManagerClass::write(uint8_t address, int nBytes, ...) {
@@ -120,10 +114,6 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
     writeBuffer[i] = va_arg(args, int);
   va_end(args);
   return read(address, readBuffer, readSize, writeBuffer, writeSize);
-}
-
-uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t readSize) {
-  return read(address, readBuffer, readSize, NULL, 0);
 }
 
 I2CManagerClass I2CManager = I2CManagerClass();

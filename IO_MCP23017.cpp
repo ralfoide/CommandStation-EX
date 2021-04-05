@@ -40,31 +40,54 @@ void MCP23017::_begin() {
 }
   
 // Device-specific write function.
-// TBD: Register setup for output mode
-void MCP23017::_write(VPIN id, int value) {
-  VPIN pin = id-_firstID;
-  uint8_t port = (pin < 8) ? GPIOA : GPIOB;
+void MCP23017::_write(VPIN vpin, int value) {
+  int pin = vpin-_firstID;
   #ifdef DIAG_IO
   //DIAG(F("MCP23017 Write Addr:x%x Pin:%d Value:%d"), (int)_I2CAddress, (int)pin, value);
   #endif
   uint8_t mask = 1 << (pin % 8);
-  if (value) 
-    _currentPortState |= mask;
-  else
-    _currentPortState &= ~mask;
-
-  I2CManager.write(_I2CAddress, 2, port, _currentPortState);
+  if (pin < 8) {
+    if (value) 
+      _currentPortStateA |= mask;
+    else
+      _currentPortStateA &= ~mask;
+    // Write values
+    writeRegister(GPIOA, _currentPortStateA);
+    // Set port mode output
+    _portModeA &= ~mask;
+    writeRegister(IODIRA, _portModeA);
+  } else {
+    if (value) 
+      _currentPortStateB |= mask;
+    else
+      _currentPortStateB &= ~mask;
+    // Write values
+    writeRegister(GPIOB, _currentPortStateB);
+    // Set port mode output
+    _portModeB &= ~mask;
+    writeRegister(IODIRB, _portModeB);
+  }
 }
 
 // Device-specific read function.
-// TBD: Register setup for input mode
-int MCP23017::_read(VPIN id) {
+int MCP23017::_read(VPIN vpin) {
   int result;
-  uint8_t buffer;
-  VPIN pin = id-_firstID;
-  uint8_t port = (pin < 8) ? GPIOA : GPIOB;
-  I2CManager.read(_I2CAddress, &buffer, 1, 1, port);
+  uint8_t buffer = 0;
+  int pin = vpin-_firstID;
   uint8_t mask = 1 << (pin % 8);
+  if (pin < 8) {
+    // Set port mode input
+    _portModeA |= mask;
+    writeRegister(IODIRA, _portModeA);
+    // Read GPIO register values
+    buffer = readRegister(GPIOA);
+  } else {
+    // Set port mode input
+    _portModeB |= mask;
+    writeRegister(IODIRB, _portModeB);
+    // Read GPIO register values
+    buffer = readRegister(GPIOB);
+  }
   if (buffer & mask) 
     result = 1;
   else
@@ -73,4 +96,16 @@ int MCP23017::_read(VPIN id) {
   //DIAG(F("MCP23017 Read Addr:x%x Pin:%d Value:%d"), (int)_I2CAddress, (int)pin, result);
   #endif
   return result;
+}
+
+// Helper function to write a register
+void MCP23017::writeRegister(uint8_t reg, uint8_t value) {
+  I2CManager.write(_I2CAddress, 2, reg, value);
+}
+
+// Helper function to read a register
+uint8_t MCP23017::readRegister(uint8_t reg) {
+  uint8_t buffer;
+  I2CManager.read(_I2CAddress, &buffer, 1, &reg, 1);
+  return buffer;
 }

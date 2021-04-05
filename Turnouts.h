@@ -28,19 +28,24 @@ const byte STATUS_ACTIVE=0x80; // Flag as activated
 const byte STATUS_PWM=0x40; // Flag as a PWM turnout
 const byte STATUS_PWMPIN=0x3F; // PWM  pin 0-63
 const int  LCN_TURNOUT_ADDRESS=-1;  // spoof dcc address -1 indicates a LCN turnout
+const int  VPIN_TURNOUT_ADDRESS=-2;      // spoof dcc address -2 indicates a VPIN turnout
 struct TurnoutData {
   int id;
   uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  
   union {
     struct {
+      // DCC subaddress (1-4) or VPIN
       uint8_t subAddress;
+      // DCC address, or -1 (LCN) or -2 (VPIN)
       int address;
     };
     struct {
-      uint8_t moveAngle;
-      uint16_t inactiveAngle;
+      // Least significant 8 bits of activePosition
+      uint8_t positionByte;
+      // Most significant 4 bits of activePosition, and inactivePosition.
+      uint16_t positionWord;
     };
-  }; // DCC address or PWM servo angle 
+  }; // DCC address or PWM servo positions 
 };
 
 class Turnout {
