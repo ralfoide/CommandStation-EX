@@ -64,7 +64,8 @@ void Turnout::activate(bool state) {
     data.tStatus|=STATUS_ACTIVE;
   else
     data.tStatus &= ~STATUS_ACTIVE;
-  IODevice::write(IODevice::turnoutVpinOffset+data.id, state);
+  int pin = data.tStatus & STATUS_PWMPIN;
+  IODevice::write(IODevice::firstServoVPin + pin, state);
   EEStore::store();
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -171,8 +172,8 @@ Turnout *Turnout::create(int id, byte pin, int activePosition, int inactivePosit
                                   // inactivePosition | high 4 bits of activePosition.
   tt->data.positionByte = activePosition & 0xff;  // low 8 bits of activeAngle.
   // Create PWM interface object 
-  Analogue::create(IODevice::turnoutVpinOffset+id, IODevice::firstServoVPin+pin, 
-    activePosition, inactivePosition, Analogue::Fast);
+  VPIN vpin = IODevice::firstServoVPin + pin;
+  Analogue::create(vpin, vpin, activePosition, inactivePosition, Analogue::Bounce);
   return(tt);
 }
 

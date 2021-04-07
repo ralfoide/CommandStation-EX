@@ -21,30 +21,57 @@
 #include "FSH.h"
 #include "DIAG.h"
 
-void Analogue::create(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, enum ProfileType profile) {
-  IODevice::remove(vpin);  // Delete any existing device that conflicts.
+//==================================================================================================================
+// Static members
+//------------------------------------------------------------------------------------------------------------------
+IODevice *Analogue::createInstance(VPIN vpin) {
+  DIAG(F("Analogue createInstance(%d)"), vpin);
+  IODevice::remove(vpin); // Delete any existing device that may conflict
   Analogue *dev = new Analogue();
   dev->_firstID = vpin;
   dev->_nPins = 1;
-  dev->_devicePin = devicePin;
-  dev->_activePosition = activePosition;
-  dev->_inactivePosition = inactivePosition;
-  dev->_profile = profile;
-  dev->_currentPosition = dev->_targetPosition = dev->_inactivePosition;
-  dev->_lastRefreshTime = millis();
+  dev->_numSteps = dev->_stepNumber = 0;
   addDevice(dev);
+  return dev; 
 }
 
+void Analogue::create(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile) {
+  Analogue *dev = (Analogue *)createInstance(vpin);
+  dev->_configure(vpin, devicePin, activePosition, inactivePosition, profile);
+}
+
+//==================================================================================================================
+// Instance members
+//------------------------------------------------------------------------------------------------------------------
+void Analogue::_configure(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile) {
+  (void)vpin;    // Suppress compiler warning
+  #ifdef DIAG_IO
+  DIAG(F("Analogue configure Vpin:%d->Vpin:%d %d-%d"), vpin, devicePin, activePosition, inactivePosition);
+  #endif
+  _devicePin = devicePin;
+  _activePosition = activePosition;
+  _inactivePosition = inactivePosition;
+  _profile = (ProfileType)profile;
+  _lastRefreshTime = millis();
+}
 
 // Periodically update current position if it is changing.
 // It's not worth going faster than 20ms as this is the pulse 
 // frequency for the PWM Servo driver.  50ms is acceptable.
-void Analogue::_loop() {
-  unsigned int currentTime = millis(); // low 16 bits of millis()
+void Analogue::_loop(unsigned long currentMicros) {
+  unsigned int currentTime = currentMicros/1000; // 16-bit millisecond timer
   if (currentTime - _lastRefreshTime >= refreshInterval) { 
     updatePosition();
     _lastRefreshTime = currentTime;
   }
+}
+
+// Device params are devicePin, activePosition, inactivePosition, and profile.
+bool Analogue::_configure(VPIN vpin, int paramCount, int params[]) {
+  (void)vpin;  // Suppress compiler warning
+  if (paramCount != 4) return false;
+  _configure(vpin, params[0], params[1], params[2], (ProfileType)params[3]);
+  return true;
 }
 
 void Analogue::_write(VPIN vpin, int value) {
@@ -55,29 +82,33 @@ void Analogue::_write(VPIN vpin, int value) {
   #endif
   if (value) value = 1;
   if (_state == value) return; // Nothing to do.
-  _targetPosition = value ? _activePosition : _inactivePosition;
-  _state = value;
+  if (_state == -1) {
+    _state = value;
+    return;
+  }
   switch (_profile) {
     case Instant: 
-      _increment = 0;
+      _numSteps = 1;
       break;
     case Fast:
-      _increment = (_targetPosition - _currentPosition) / 10; // 500ms end-to-end
+      _numSteps = 10;
       break;
     case Medium:
-      _increment = (_targetPosition - _currentPosition) / 20; // 1s end-to-end
+      _numSteps = 20;
       break;
     case Slow:
-      _increment = (_targetPosition - _currentPosition) / 40; // 2s second end-to-end
+      _numSteps = 40;
       break;      
     case Bounce:
-      _increment = 0;
-      _stepNumber = 0;
+      _numSteps = sizeof(profile);
       break;
     default:
-      _increment = 0;
+      _profile = Fast;
+      _numSteps = 10;
       break;
   }
+  _state = value;
+  _stepNumber = 0;
   updatePosition();
   _lastRefreshTime = millis();
 }
@@ -90,48 +121,44 @@ void Analogue::_display() {
 // Private function to reposition servo
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void Analogue::updatePosition() {
+  int newPosition;
   bool changed = false;
   switch (_profile) {
+    case Instant:
     case Fast:
     case Medium:
     case Slow:
-      if (_currentPosition != _targetPosition) {
-        _currentPosition += _increment;
+      if (_stepNumber < _numSteps) {
+        if (_state)
+          newPosition = map(_stepNumber, -1, _numSteps, _inactivePosition, _activePosition);
+        else  
+          newPosition = map(_stepNumber, -1, _numSteps, _activePosition, _inactivePosition);
+        _stepNumber++;
         changed = true;
-        if (_increment > 0) {
-          if (_currentPosition > _targetPosition)
-            _currentPosition = _targetPosition;
-        } else {
-          if (_currentPosition < _targetPosition)
-            _currentPosition = _targetPosition;
-        }
       }
       break;
     case Bounce:
-      if (_stepNumber < numSteps) {
+      if (_stepNumber < _numSteps) {
         byte profileValue = GETFLASH(&profile[_stepNumber]);
         if (!_state) profileValue = 100 - profileValue;
-        _currentPosition = map(profileValue, 
+        newPosition = map(profileValue, 
               0, 100, _inactivePosition, _activePosition);
         _stepNumber++;
         changed = true;
       }
       break;
-    default: // Includes SP_Instant
-      if (_currentPosition != _targetPosition) {
-        _currentPosition = _targetPosition;
-        changed = true;
-      }
+    default:
       break;
   }
       
-  // Write to PWM module.
+  // Write to PWM module.  Use writeDownstream.
   if (changed)
-    IODevice::write(_devicePin, _currentPosition);
+    IODevice::writeDownsream(_devicePin, newPosition);
 }
 
+// Profile for a bouncing signal
 // The profile below is in the range 0-100% and should be combined with the desired limits
 // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
 // i.e. the bounce is the same on the down action as on the up action.
-const byte FLASH Analogue::profile[numSteps] = 
+const byte FLASH Analogue::profile[30] = 
     {2,3,7,13,33,50,83,100,83,75,70,65,60,60,65,74,84,100,83,75,70,70,72,75,80,87,92,97,100,100};

@@ -44,27 +44,30 @@ public:
     Bounce = 4    // For semaphores/turnouts with a bit of bounce!!
   };
 
-  static void create(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, enum ProfileType profile);  
+  static void registerDeviceType() {
+    _registerDeviceType(DeviceType::Analogue, createInstance);
+  }
+  static IODevice *createInstance(VPIN vpin);
+  static void create(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile);  
   Analogue() { }
 
-  void _loop();
+  void _loop(unsigned long currentMicros);
   void _write(VPIN vpin, int value);
+  bool _configure(VPIN vpin, int paramCount, int params[]);
+  void _configure(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile);
   void _display();
-  
+ 
 private:
   // Recalculate output
   void updatePosition();
         
-  VPIN _devicePin = 0;
+  VPIN _devicePin = VPIN_NONE;
   int _activePosition;
   int _inactivePosition;
-  int _currentPosition;
-  byte _state = 0;
-  byte _stepNumber = 0;
-  static const byte numSteps = 30;
-  static const byte PROGMEM profile[];
-  int _targetPosition;
-  int _increment;
+  int8_t _state = -1;  // State unknown initially
+  uint8_t _stepNumber = 0;
+  uint8_t _numSteps;
+  static const byte FLASH profile[30];
   enum ProfileType _profile;
   const unsigned int refreshInterval = 50; // refresh every 50ms
   unsigned int _lastRefreshTime; // low 16-bits of millis() count.

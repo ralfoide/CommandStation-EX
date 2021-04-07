@@ -34,11 +34,15 @@ static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our 
 static const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 
-void PCA9685::create(VPIN firstID, int nPins, uint8_t I2CAddress) {
+// Create device driver.  This function assumes that one or more PCA9685's will be installed on 
+// successive I2C addresses with a contiguous range of VPINs.  For example, the first PCA9685 may
+// be at address 0x40 and allocated pins 100-115.  In this case, pins 116-131 would be on another
+// PCA9685 on address 0x41, pins 132-147 on address 0x42, and pins 148-163 on address 0x43.  
+//
+void PCA9685::create(VPIN firstID, int nPins) {
   PCA9685 *dev = new PCA9685(); 
   dev->_firstID = firstID;
-  dev->_nPins = max(nPins, 16);
-  dev->_I2CAddress = I2CAddress;
+  dev->_nPins = max(nPins, 64);
   addDevice(dev);
 }
 
@@ -52,13 +56,16 @@ void PCA9685::_begin() {
           // In reality, other devices including the Arduino will limit 
           // the clock speed to a lower rate.
 
-  // Initialise I/O module here.
-  writeRegister(PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
-  writeRegister(PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
-  writeRegister(PCA9685_MODE1, MODE1_AI);
-  writeRegister(PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
-  // In theory, we should wait 500us before sending any other commands, to allow
-  // the PWM oscillator to get running.  However, we don't.    
+  // Initialise I/O module(s) here.
+  for (byte module=0; module < _nPins/16; module++) {
+    uint8_t address = _I2CAddress + module;
+    writeRegister(address, PCA9685_MODE1, MODE1_SLEEP | MODE1_AI);    
+    writeRegister(address, PCA9685_PRESCALE, PRESCALE_50HZ);   // 50Hz clock, 20ms pulse period.
+    writeRegister(address, PCA9685_MODE1, MODE1_AI);
+    writeRegister(address, PCA9685_MODE1, MODE1_RESTART | MODE1_AI);
+    // In theory, we should wait 500us before sending any other commands to each device, to allow
+    // the PWM oscillator to get running.  However, we don't.    
+  }
 }
 
 // Device-specific write function.  This device is PWM, and the value written
@@ -66,22 +73,25 @@ void PCA9685::_begin() {
 // ratio.
 void PCA9685::_write(VPIN vpin, int value) {
   int pin = vpin-_firstID;
+  uint16_t address = _I2CAddress + pin/16;
+  pin %= 16;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 VPin:%d Write I2C:x%x/%d Value:%d"), (int)vpin, (int)_I2CAddress, pin, value);
+  DIAG(F("PCA9685 VPin:%d Write I2C:x%x/%d Value:%d"), (int)vpin, (int)address, pin, value);
   #endif
   uint8_t buffer[] = {(uint8_t)(PCA9685_FIRST_SERVO + 4 * pin), 
       0, 0, (uint8_t)(value & 0xff), (uint8_t)(value >> 8)};
   if (value == 4095) buffer[2] = 0x10;   // Full on
-  uint8_t error = I2CManager.write(_I2CAddress, buffer, sizeof(buffer));
-  //if (error) DIAG(F("Error I2C:%x, errCode=%d"), _I2CAddress, error);
+  uint8_t error = I2CManager.write(address, buffer, sizeof(buffer));
+  //if (error) DIAG(F("Error I2C:%x, errCode=%d"), address, error);
   (void)error;
 }
 
+// Display details of this device.
 void PCA9685::_display() {
   DIAG(F("PCA9685 VPins:%d-%d I2C:x%x"), _firstID, _firstID+_nPins-1, _I2CAddress);
 }
 
 // Internal helper function for this device
-void PCA9685::writeRegister(byte reg, byte value) {
-  I2CManager.write(_I2CAddress, 2, reg, value);
+void PCA9685::writeRegister(byte address, byte reg, byte value) {
+  I2CManager.write(address, 2, reg, value);
 }

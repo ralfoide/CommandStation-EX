@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <Wire.h>
 #include "I2CManager.h"
+#include "DIAG.h"
 
 // If not already initialised, initialise I2C (wire).
 void I2CManagerClass::begin(void) {
@@ -27,6 +28,15 @@ void I2CManagerClass::begin(void) {
     Wire.begin();
     _beginCompleted = true;
   }
+  // Probe and list devices.
+  bool found = false;
+  for (byte addr=1; addr<127; addr++) {
+    if (exists(addr)) {
+      found = true; 
+      DIAG(F("I2C Device found at x%x"), addr);
+    }
+  }
+  if (!found) DIAG(F("No I2C Devices found"));
 }
 
 // Set clock speed to the lowest requested one. If none requested,

@@ -40,6 +40,8 @@ void MCP23017::_begin() {
 }
   
 // Device-specific write function.
+// TODO: Cache port mode so that it doesn't have to
+// be changed every time.
 void MCP23017::_write(VPIN vpin, int value) {
   int pin = vpin-_firstID;
   #ifdef DIAG_IO
@@ -70,6 +72,12 @@ void MCP23017::_write(VPIN vpin, int value) {
 }
 
 // Device-specific read function.
+// TODO: Reduce number of port reads by cacheing 
+// the port value, so that a call from _read
+// can use the cached value if (a) it's not too
+// old and (b) the port mode hasn't been changed.
+// TODO: Cache port mode so that it doesn't have to
+// be changed every time.
 int MCP23017::_read(VPIN vpin) {
   int result;
   uint8_t buffer = 0;
