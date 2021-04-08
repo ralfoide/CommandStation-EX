@@ -20,6 +20,7 @@
 #ifndef iodevice_h
 #define iodevice_h
 
+// Define symbol to enable diagnostic output
 #define DIAG_IO Y
 
 #include "DIAG.h"
@@ -100,7 +101,7 @@ protected:
   // Method called from within a filter device to trigger its output (which may
   // have the same VPIN id as the input to the filter).  It works through the 
   // later devices in the chain only.
-  void writeDownsream(VPIN vpin, int value);
+  void writeDownstream(VPIN vpin, int value);
   // Method to read pin state (optionally implemented within device class)
   virtual int _read(VPIN vpin) { 
     (void)vpin; 
@@ -145,6 +146,7 @@ private:
  
 class PCA9685 : public IODevice {
 public:
+  static IODevice *createInstance(VPIN vpin, int nPins);
   static void create(VPIN vpin, int nPins);
 
 private:
@@ -170,7 +172,7 @@ private:
  
 class PCF8574 : public IODevice {
 public:
-  IODevice *createInstance(VPIN vpin);
+  static IODevice *createInstance(VPIN vpin, int nPins);
   static void create(VPIN vpin, int nPins) ;
 
 private:
@@ -207,6 +209,7 @@ private:
 class MCP23017 : public IODevice {
 public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
+  static IODevice *createInstance(VPIN vpin, int nPins);
   
 private:
   // Constructor

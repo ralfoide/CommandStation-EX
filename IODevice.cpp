@@ -65,7 +65,7 @@ void IODevice::begin() {
   ArduinoPins::create(2, 48);  // Reserve pins numbered 2-49 for direct access
   // On devices with 32k flash, don't predefine PCA9685.  It can be added in mysetup,h
   #if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_AVR_UNO)
-  PCA9685::create(IODevice::firstServoVPin, 64); // Predefine four PCA9685 modules on successive addresses.
+  //PCA9685::create(IODevice::firstServoVPin, 64); // Predefine four PCA9685 modules on successive addresses.
   #endif
 }
 
@@ -177,7 +177,7 @@ void IODevice::addDevice(IODevice *newDevice) {
 // a write to the VPIN from outside the device is passed to the device, but a 
 // call to writeDownstream will pass it to another device with the same
 // VPIN number if one exists.
-void IODevice::writeDownsream(VPIN vpin, int value) {
+void IODevice::writeDownstream(VPIN vpin, int value) {
   for (IODevice *dev = _nextDevice; dev != 0; dev = dev->_nextDevice) {
     if (dev->owns(vpin)) {
       dev->_write(vpin, value);

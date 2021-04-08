@@ -34,16 +34,21 @@ static const float FREQUENCY_OSCILLATOR=25000000.0; /** Accurate enough for our 
 static const uint8_t PRESCALE_50HZ = (uint8_t)(((FREQUENCY_OSCILLATOR / (50.0 * 4096.0)) + 0.5) - 1);
 static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C clock speed
 
-// Create device driver.  This function assumes that one or more PCA9685's will be installed on 
+// Create device driver.  This function assumes that one or more PCA9685s will be installed on 
 // successive I2C addresses with a contiguous range of VPINs.  For example, the first PCA9685 may
 // be at address 0x40 and allocated pins 100-115.  In this case, pins 116-131 would be on another
 // PCA9685 on address 0x41, pins 132-147 on address 0x42, and pins 148-163 on address 0x43.  
 //
-void PCA9685::create(VPIN firstID, int nPins) {
-  PCA9685 *dev = new PCA9685(); 
-  dev->_firstID = firstID;
+void PCA9685::create(VPIN vpin, int nPins) {
+  createInstance(vpin, nPins);
+}
+
+IODevice *PCA9685::createInstance(VPIN vpin, int nPins) {
+  PCA9685 *dev = new PCA9685();
+  dev->_firstID = vpin;
   dev->_nPins = max(nPins, 64);
   addDevice(dev);
+  return dev;
 }
 
 // Constructor

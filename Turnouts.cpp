@@ -164,7 +164,7 @@ Turnout *Turnout::create(int id, int add, int subAdd){
 
 // Legacy method for creating a PCA9685 PWM turnout.
 // Pin here is numbered from 0 within PCA9685.
-Turnout *Turnout::create(int id, byte pin, int activePosition, int inactivePosition){
+Turnout *Turnout::create(int id, byte pin, int activePosition, int inactivePosition, int profile){
   Turnout *tt=create(id);
   tt->data.tStatus= STATUS_PWM | (pin &  STATUS_PWMPIN);
   // Pack active/inactive positions into available space.
@@ -173,7 +173,7 @@ Turnout *Turnout::create(int id, byte pin, int activePosition, int inactivePosit
   tt->data.positionByte = activePosition & 0xff;  // low 8 bits of activeAngle.
   // Create PWM interface object 
   VPIN vpin = IODevice::firstServoVPin + pin;
-  Analogue::create(vpin, vpin, activePosition, inactivePosition, Analogue::Bounce);
+  Analogue::create(vpin, vpin, activePosition, inactivePosition, profile);
   return(tt);
 }
 

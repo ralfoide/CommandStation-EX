@@ -31,6 +31,7 @@ IODevice *Analogue::createInstance(VPIN vpin) {
   dev->_firstID = vpin;
   dev->_nPins = 1;
   dev->_numSteps = dev->_stepNumber = 0;
+  dev->_state = 0;
   addDevice(dev);
   return dev; 
 }
@@ -53,6 +54,7 @@ void Analogue::_configure(VPIN vpin, VPIN devicePin, int activePosition, int ina
   _inactivePosition = inactivePosition;
   _profile = (ProfileType)profile;
   _lastRefreshTime = millis();
+  IODevice::writeDownstream(vpin, _inactivePosition);
 }
 
 // Periodically update current position if it is changing.
@@ -82,10 +84,6 @@ void Analogue::_write(VPIN vpin, int value) {
   #endif
   if (value) value = 1;
   if (_state == value) return; // Nothing to do.
-  if (_state == -1) {
-    _state = value;
-    return;
-  }
   switch (_profile) {
     case Instant: 
       _numSteps = 1;
@@ -129,11 +127,11 @@ void Analogue::updatePosition() {
     case Medium:
     case Slow:
       if (_stepNumber < _numSteps) {
-        if (_state)
-          newPosition = map(_stepNumber, -1, _numSteps, _inactivePosition, _activePosition);
-        else  
-          newPosition = map(_stepNumber, -1, _numSteps, _activePosition, _inactivePosition);
         _stepNumber++;
+        if (_state)
+          newPosition = map(_stepNumber, 0, _numSteps, _inactivePosition, _activePosition);
+        else  
+          newPosition = map(_stepNumber, 0, _numSteps, _activePosition, _inactivePosition);
         changed = true;
       }
       break;
@@ -143,8 +141,8 @@ void Analogue::updatePosition() {
         if (!_state) profileValue = 100 - profileValue;
         newPosition = map(profileValue, 
               0, 100, _inactivePosition, _activePosition);
-        _stepNumber++;
         changed = true;
+        _stepNumber++;
       }
       break;
     default:
@@ -153,7 +151,7 @@ void Analogue::updatePosition() {
       
   // Write to PWM module.  Use writeDownstream.
   if (changed)
-    IODevice::writeDownsream(_devicePin, newPosition);
+    IODevice::writeDownstream(_devicePin, newPosition);
 }
 
 // Profile for a bouncing signal

@@ -62,7 +62,7 @@ class Turnout {
   static void store();
   static Turnout *create(int id, VPIN vpin);
   static Turnout *create(int id , int address , int subAddress);
-  static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle);
+  static Turnout *create(int id , byte pin , int activeAngle, int inactiveAngle, int profile=1);
   static Turnout *create(int id);
   void activate(bool state);
   static void printAll(Print *);

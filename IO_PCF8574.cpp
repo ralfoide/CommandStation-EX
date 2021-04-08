@@ -21,26 +21,27 @@
 #include "DIAG.h"
 #include "I2CManager.h"
 
+// Define symbol to enable PCF8574 input port value caching (reduce I2C traffic).
+#define PCF8574_OPTIMISE
+
 // Constructor
 PCF8574::PCF8574() {}
 
-IODevice *PCF8574::createInstance(VPIN firstID) {
+IODevice *PCF8574::createInstance(VPIN vpin, int nPins) {
   PCF8574 *dev = new PCF8574();
-  dev->_firstID = firstID;
+  dev->_firstID = vpin;
+  dev->_nPins = max(nPins, 64);
+  dev->_nModules = (dev->_nPins + 7) / 8; // Number of modules in use.
   addDevice(dev);
   return dev;
 }
 
-// Parameters: firstVPIN, nPins, I2CAddress
+// Parameters: firstVPIN, nPins
 // We allow up to 8 devices, on successive I2C addresses starting 
 // with the specified one.  VPINS are allocated contiguously, 8 
 // per device.
-void PCF8574::create(VPIN firstID, int nPins) {
-  PCF8574 *dev = new PCF8574();
-  dev->_firstID = firstID;
-  dev->_nPins = max(nPins, 64);
-  dev->_nModules = (dev->_nPins + 7) / 8; // Number of modules in use.
-  addDevice(dev);
+void PCF8574::create(VPIN vpin, int nPins) {
+  createInstance(vpin, nPins);
 }
 
 // Device-specific initialisation 
@@ -93,7 +94,9 @@ int PCF8574::_read(VPIN vpin) {
   if (bytesToSend || _portCounter[deviceIndex] == 0) {
     I2CManager.read(_I2CAddress+deviceIndex, &inBuffer, 1, &_portOutputState[deviceIndex], bytesToSend);
     _portInputState[deviceIndex] = inBuffer;
+#ifdef PCF8574_OPTIMISE
     _portCounter[deviceIndex] = _minTicksBetweenPortReads;
+#endif
   }
   if (_portInputState[deviceIndex] & mask) 
     result = 1;
@@ -109,6 +112,8 @@ int PCF8574::_read(VPIN vpin) {
 // periodically.  When the portCounter reaches zero, the port value is considered to be out-of-date
 // and will need re-reading.
 void PCF8574::_loop(unsigned long currentMicros) {
+  (void)currentMicros;  // suppress compiler not-used warning.
+#ifdef PCF8574_OPTIMISE
   // Process every tick
   if (currentMicros - _lastLoopEntry > _portTickTime) {
     int elapsedTicks = (currentMicros - _lastLoopEntry) / _portTickTime;
@@ -121,6 +126,7 @@ void PCF8574::_loop(unsigned long currentMicros) {
     }
     _lastLoopEntry = currentMicros;
   }
+#endif
 }
 
 void PCF8574::_display() {
