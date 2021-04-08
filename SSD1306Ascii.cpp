@@ -81,7 +81,7 @@ static const uint8_t SH1106_PUMP_ON = 0x8B;
 static const uint8_t SH1106_PUMP_OFF = 0x8A;
 //------------------------------------------------------------------------------
 
-
+// Sequence of blank pixels, to optimise clearing screen.
 // Maximum number of bytes we can send per transmission is 32.
 const uint8_t FLASH SSD1306AsciiWire::blankPixels[32] = 
   {0x40,        // First byte specifies data mode
@@ -90,24 +90,49 @@ const uint8_t FLASH SSD1306AsciiWire::blankPixels[32] =
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
 //------------------------------------------------------------------------------
-void SSD1306AsciiWire::clear() {
-  clear(0, displayWidth() - 1, 0, displayRows() - 1);
+ 
+// Constructor
+SSD1306AsciiWire::SSD1306AsciiWire(int width, int height) {
+  m_displayHeight = height;
+  m_displayWidth = width;
+  // Set size in characters in base class
+  lcdRows = m_displayHeight / 8;
+  lcdCols = m_displayWidth / 6;
+
+  I2CManager.begin();
+  I2CManager.setClock(400000L);  // Set max supported I2C speed
+  for (byte address = 0x3c; address <= 0x3d; address++) {
+    if (I2CManager.exists(address)) {
+      // Device found
+      DIAG(F("OLED display found at 0x%x"), address);
+      if (width == 132)
+        begin(&SH1106_128x64, address);
+      else if (height == 32)
+        begin(&Adafruit128x32, address);
+      else
+        begin(&Adafruit128x64, address);
+      // Set singleton address
+      lcdDisplay = this;
+      clear();
+      return;
+    }
+  }
+  DIAG(F("OLED display not found"));
 }
-//------------------------------------------------------------------------------
-void SSD1306AsciiWire::clear(uint8_t columnStart, uint8_t columnEnd, 
-                             uint8_t rowStart, uint8_t rowEnd) {
+
+/* Clear screen by writing blank pixels. */
+void SSD1306AsciiWire::clearNative() {
   const int maxBytes = sizeof(blankPixels);  // max number of bytes sendable over Wire
-  // Ensure only rows on display will be cleared.
-  if (rowEnd >= displayRows()) rowEnd = displayRows() - 1;
-  for (uint8_t r = rowStart; r <= rowEnd; r++) {
-    setCursor(columnStart, r);   // Position at start of row to be erased
-    for (uint8_t c = columnStart; c <= columnEnd; c += maxBytes-1) {
-      uint8_t len = min((uint8_t)(columnEnd-c+1), maxBytes-1) + 1;
+  for (uint8_t r = 0; r <= m_displayHeight/8 - 1; r++) {
+    setRowNative(r);   // Position at start of row to be erased
+    for (uint8_t c = 0; c <= m_displayWidth - 1; c += maxBytes-1) {
+      uint8_t len = min((uint8_t)(m_displayWidth-c), maxBytes-1) + 1;
       I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write up to 31 blank columns
     }
   }
 }
-//------------------------------------------------------------------------------
+
+// Initialise device
 void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
   m_i2cAddr = i2cAddr;
   m_col = 0;
@@ -131,26 +156,30 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
       SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
       SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
 }
-//------------------------------------------------------------------------------
-void SSD1306AsciiWire::setContrast(uint8_t value) {
-  I2CManager.write(m_i2cAddr, 2, 
-    0x00,     // Set to command mode
-    SSD1306_SETCONTRAST, value);
-}
-//------------------------------------------------------------------------------
+
+// Set cursor position (by pixels)
 void SSD1306AsciiWire::setCursor(uint8_t col, uint8_t row) {
-  if (row < displayRows() && col < m_displayWidth) {
+  if (row < m_displayHeight && col < m_displayWidth) {
     m_row = row;
     m_col = col + m_colOffset;
     I2CManager.write(m_i2cAddr, 4,
       0x00,    // Set to command mode
       SSD1306_SETLOWCOLUMN | (col & 0XF), 
       SSD1306_SETHIGHCOLUMN | (col >> 4),
-      SSD1306_SETSTARTPAGE | m_row);
+      SSD1306_SETSTARTPAGE | (m_row/8));
   }
 }
 //------------------------------------------------------------------------------
-size_t SSD1306AsciiWire::write(uint8_t ch) {
+
+// Set cursor position (by text line)
+void SSD1306AsciiWire::setRowNative(uint8_t line) {
+  // Calculate pixel position from line number
+  setCursor(0, line*8);
+}
+//------------------------------------------------------------------------------
+
+// Write a character to the OLED
+size_t SSD1306AsciiWire::writeNative(uint8_t ch) {
   const uint8_t* base = m_font;
 
   if (ch < m_fontFirstChar || ch >= (m_fontFirstChar + m_fontCharCount))
@@ -182,6 +211,7 @@ size_t SSD1306AsciiWire::write(uint8_t ch) {
 
 //==============================================================================
 // this section is based on https://github.com/adafruit/Adafruit_SSD1306
+
 /** Initialization commands for a 128x32 or 128x64 SSD1306 oled display. */
 const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
     // Init sequence for Adafruit 128x32/64 OLED module
@@ -201,6 +231,7 @@ const uint8_t FLASH SSD1306AsciiWire::Adafruit128xXXinit[] = {
     SSD1306_NORMALDISPLAY,
     SSD1306_DISPLAYON
 };
+
 /** Initialize a 128x32 SSD1306 oled display. */
 const DevType FLASH SSD1306AsciiWire::Adafruit128x32 = {
   Adafruit128xXXinit,
@@ -209,6 +240,7 @@ const DevType FLASH SSD1306AsciiWire::Adafruit128x32 = {
   32,
   0
 };
+
 /** Initialize a 128x64 oled display. */
 const DevType FLASH SSD1306AsciiWire::Adafruit128x64 = {
   Adafruit128xXXinit,
@@ -219,6 +251,7 @@ const DevType FLASH SSD1306AsciiWire::Adafruit128x64 = {
 };
 //------------------------------------------------------------------------------
 // This section is based on https://github.com/stanleyhuangyc/MultiLCD
+
 /** Initialization commands for a 128x64 SH1106 oled display. */
 const uint8_t FLASH SSD1306AsciiWire::SH1106_128x64init[] = {
   0x00,                                  // Set to command mode
@@ -236,6 +269,7 @@ const uint8_t FLASH SSD1306AsciiWire::SH1106_128x64init[] = {
   SSD1306_SETVCOMDETECT,  0x40,          // set vcomh
   SSD1306_DISPLAYON
 };
+
 /** Initialize a 128x64 oled SH1106 display. */
 const DevType FLASH SSD1306AsciiWire::SH1106_128x64 =  {
   SH1106_128x64init,
@@ -243,4 +277,117 @@ const DevType FLASH SSD1306AsciiWire::SH1106_128x64 =  {
   128,
   64,
   2    // SH1106 is a 132x64 controller.  Use middle 128 columns.
+};
+
+
+//------------------------------------------------------------------------------
+
+// Font characters, 5x7 pixels, 0x61 characters starting at 0x20.
+// Lower case characters optionally omitted.
+const uint8_t FLASH SSD1306AsciiWire::System5x7[] = {
+
+    // Fixed width; char width table not used !!!!
+    // or with lowercase character omitted.
+
+    // font data
+    0x00, 0x00, 0x00, 0x00, 0x00,  // (space)
+    0x00, 0x00, 0x5F, 0x00, 0x00,  // !
+    0x00, 0x07, 0x00, 0x07, 0x00,  // "
+    0x14, 0x7F, 0x14, 0x7F, 0x14,  // #
+    0x24, 0x2A, 0x7F, 0x2A, 0x12,  // $
+    0x23, 0x13, 0x08, 0x64, 0x62,  // %
+    0x36, 0x49, 0x55, 0x22, 0x50,  // &
+    0x00, 0x05, 0x03, 0x00, 0x00,  // '
+    0x00, 0x1C, 0x22, 0x41, 0x00,  // (
+    0x00, 0x41, 0x22, 0x1C, 0x00,  // )
+    0x08, 0x2A, 0x1C, 0x2A, 0x08,  // *
+    0x08, 0x08, 0x3E, 0x08, 0x08,  // +
+    0x00, 0x50, 0x30, 0x00, 0x00,  // ,
+    0x08, 0x08, 0x08, 0x08, 0x08,  // -
+    0x00, 0x60, 0x60, 0x00, 0x00,  // .
+    0x20, 0x10, 0x08, 0x04, 0x02,  // /
+    0x3E, 0x51, 0x49, 0x45, 0x3E,  // 0
+    0x00, 0x42, 0x7F, 0x40, 0x00,  // 1
+    0x42, 0x61, 0x51, 0x49, 0x46,  // 2
+    0x21, 0x41, 0x45, 0x4B, 0x31,  // 3
+    0x18, 0x14, 0x12, 0x7F, 0x10,  // 4
+    0x27, 0x45, 0x45, 0x45, 0x39,  // 5
+    0x3C, 0x4A, 0x49, 0x49, 0x30,  // 6
+    0x01, 0x71, 0x09, 0x05, 0x03,  // 7
+    0x36, 0x49, 0x49, 0x49, 0x36,  // 8
+    0x06, 0x49, 0x49, 0x29, 0x1E,  // 9
+    0x00, 0x36, 0x36, 0x00, 0x00,  // :
+    0x00, 0x56, 0x36, 0x00, 0x00,  // ;
+    0x00, 0x08, 0x14, 0x22, 0x41,  // <
+    0x14, 0x14, 0x14, 0x14, 0x14,  // =
+    0x41, 0x22, 0x14, 0x08, 0x00,  // >
+    0x02, 0x01, 0x51, 0x09, 0x06,  // ?
+    0x32, 0x49, 0x79, 0x41, 0x3E,  // @
+    0x7E, 0x11, 0x11, 0x11, 0x7E,  // A
+    0x7F, 0x49, 0x49, 0x49, 0x36,  // B
+    0x3E, 0x41, 0x41, 0x41, 0x22,  // C
+    0x7F, 0x41, 0x41, 0x22, 0x1C,  // D
+    0x7F, 0x49, 0x49, 0x49, 0x41,  // E
+    0x7F, 0x09, 0x09, 0x01, 0x01,  // F
+    0x3E, 0x41, 0x41, 0x51, 0x32,  // G
+    0x7F, 0x08, 0x08, 0x08, 0x7F,  // H
+    0x00, 0x41, 0x7F, 0x41, 0x00,  // I
+    0x20, 0x40, 0x41, 0x3F, 0x01,  // J
+    0x7F, 0x08, 0x14, 0x22, 0x41,  // K
+    0x7F, 0x40, 0x40, 0x40, 0x40,  // L
+    0x7F, 0x02, 0x04, 0x02, 0x7F,  // M
+    0x7F, 0x04, 0x08, 0x10, 0x7F,  // N
+    0x3E, 0x41, 0x41, 0x41, 0x3E,  // O
+    0x7F, 0x09, 0x09, 0x09, 0x06,  // P
+    0x3E, 0x41, 0x51, 0x21, 0x5E,  // Q
+    0x7F, 0x09, 0x19, 0x29, 0x46,  // R
+    0x46, 0x49, 0x49, 0x49, 0x31,  // S
+    0x01, 0x01, 0x7F, 0x01, 0x01,  // T
+    0x3F, 0x40, 0x40, 0x40, 0x3F,  // U
+    0x1F, 0x20, 0x40, 0x20, 0x1F,  // V
+    0x7F, 0x20, 0x18, 0x20, 0x7F,  // W
+    0x63, 0x14, 0x08, 0x14, 0x63,  // X
+    0x03, 0x04, 0x78, 0x04, 0x03,  // Y
+    0x61, 0x51, 0x49, 0x45, 0x43,  // Z
+    0x00, 0x00, 0x7F, 0x41, 0x41,  // [
+    0x02, 0x04, 0x08, 0x10, 0x20,  // "\"
+    0x41, 0x41, 0x7F, 0x00, 0x00,  // ]
+    0x04, 0x02, 0x01, 0x02, 0x04,  // ^
+    0x40, 0x40, 0x40, 0x40, 0x40,  // _
+    0x00, 0x01, 0x02, 0x04, 0x00,  // `
+#ifndef NOLOWERCASE
+    0x20, 0x54, 0x54, 0x54, 0x78,  // a
+    0x7F, 0x48, 0x44, 0x44, 0x38,  // b
+    0x38, 0x44, 0x44, 0x44, 0x20,  // c
+    0x38, 0x44, 0x44, 0x48, 0x7F,  // d
+    0x38, 0x54, 0x54, 0x54, 0x18,  // e
+    0x08, 0x7E, 0x09, 0x01, 0x02,  // f
+    0x08, 0x14, 0x54, 0x54, 0x3C,  // g
+    0x7F, 0x08, 0x04, 0x04, 0x78,  // h
+    0x00, 0x44, 0x7D, 0x40, 0x00,  // i
+    0x20, 0x40, 0x44, 0x3D, 0x00,  // j
+    0x00, 0x7F, 0x10, 0x28, 0x44,  // k
+    0x00, 0x41, 0x7F, 0x40, 0x00,  // l
+    0x7C, 0x04, 0x18, 0x04, 0x78,  // m
+    0x7C, 0x08, 0x04, 0x04, 0x78,  // n
+    0x38, 0x44, 0x44, 0x44, 0x38,  // o
+    0x7C, 0x14, 0x14, 0x14, 0x08,  // p
+    0x08, 0x14, 0x14, 0x18, 0x7C,  // q
+    0x7C, 0x08, 0x04, 0x04, 0x08,  // r
+    0x48, 0x54, 0x54, 0x54, 0x20,  // s
+    0x04, 0x3F, 0x44, 0x40, 0x20,  // t
+    0x3C, 0x40, 0x40, 0x20, 0x7C,  // u
+    0x1C, 0x20, 0x40, 0x20, 0x1C,  // v
+    0x3C, 0x40, 0x30, 0x40, 0x3C,  // w
+    0x44, 0x28, 0x10, 0x28, 0x44,  // x
+    0x0C, 0x50, 0x50, 0x50, 0x3C,  // y
+    0x44, 0x64, 0x54, 0x4C, 0x44,  // z
+#endif
+    0x00, 0x08, 0x36, 0x41, 0x00,  // {
+    0x00, 0x00, 0x7F, 0x00, 0x00,  // |
+    0x00, 0x41, 0x36, 0x08, 0x00,  // }
+    0x08, 0x08, 0x2A, 0x1C, 0x08,  // ->
+    0x08, 0x1C, 0x2A, 0x08, 0x08,  // <-
+    0x00, 0x06, 0x09, 0x09, 0x06   // degree symbol
+
 };
