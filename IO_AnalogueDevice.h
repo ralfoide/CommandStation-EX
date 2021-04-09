@@ -56,6 +56,8 @@ public:
   bool _configure(VPIN vpin, int paramCount, int params[]);
   void _configure(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile);
   void _display();
+  bool _isDeletable();
+
  
 private:
   // Recalculate output
@@ -64,7 +66,10 @@ private:
   VPIN _devicePin = VPIN_NONE;
   int _activePosition;
   int _inactivePosition;
-  int8_t _state = -1;  // State unknown initially
+  int _currentPosition;
+  int _fromPosition;
+  int _toPosition;
+  int8_t _state = 0;  
   uint8_t _stepNumber = 0;
   uint8_t _numSteps;
   static const byte FLASH profile[30];

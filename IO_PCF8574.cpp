@@ -22,17 +22,22 @@
 #include "I2CManager.h"
 
 // Define symbol to enable PCF8574 input port value caching (reduce I2C traffic).
-#define PCF8574_OPTIMISE
+//#define PCF8574_OPTIMISE
 
 // Constructor
 PCF8574::PCF8574() {}
 
-IODevice *PCF8574::createInstance(VPIN vpin, int nPins) {
+IODevice *PCF8574::createInstance(VPIN vpin, int nPins, uint8_t I2CAddress) {
+  #ifdef DIAG_IO
+  DIAG(F("PCF8574 created Vpins:%d-%d I2C:%x"), vpin, vpin+nPins-1, I2CAddress);
+  #endif
   PCF8574 *dev = new PCF8574();
   dev->_firstID = vpin;
-  dev->_nPins = max(nPins, 64);
+  dev->_nPins = min(nPins, 8*8);
   dev->_nModules = (dev->_nPins + 7) / 8; // Number of modules in use.
+  dev->_I2CAddress = I2CAddress;
   addDevice(dev);
+  dev->_begin();
   return dev;
 }
 
@@ -40,14 +45,21 @@ IODevice *PCF8574::createInstance(VPIN vpin, int nPins) {
 // We allow up to 8 devices, on successive I2C addresses starting 
 // with the specified one.  VPINS are allocated contiguously, 8 
 // per device.
-void PCF8574::create(VPIN vpin, int nPins) {
-  createInstance(vpin, nPins);
+void PCF8574::create(VPIN vpin, int nPins, uint8_t I2CAddress) {
+  createInstance(vpin, nPins, I2CAddress);
 }
 
 // Device-specific initialisation 
 void PCF8574::_begin() {
   I2CManager.begin();
   I2CManager.setClock(100000);  // Only supports slow clock
+  for (int i=0; i<_nModules; i++) {
+    if (I2CManager.exists(_I2CAddress+i))
+      DIAG(F("PCF8574 on I2C:x%x"), _I2CAddress+i);
+    _portInputState[i] = 0;
+    _portOutputState[i] = 0x00; // Defaults to output zero.
+    _portCounter[i] = 0;
+  }
 }
 
 // Device-specific write function.

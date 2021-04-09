@@ -44,9 +44,12 @@ void PCA9685::create(VPIN vpin, int nPins) {
 }
 
 IODevice *PCA9685::createInstance(VPIN vpin, int nPins) {
+  #ifdef DIAG_IO
+  DIAG(F("PCA9685 created Vpins:%d-%d"), vpin, vpin+nPins-1);
+  #endif
   PCA9685 *dev = new PCA9685();
   dev->_firstID = vpin;
-  dev->_nPins = max(nPins, 64);
+  dev->_nPins = min(nPins, 8*8);
   addDevice(dev);
   return dev;
 }
@@ -81,7 +84,7 @@ void PCA9685::_write(VPIN vpin, int value) {
   uint16_t address = _I2CAddress + pin/16;
   pin %= 16;
   #ifdef DIAG_IO
-  DIAG(F("PCA9685 VPin:%d Write I2C:x%x/%d Value:%d"), (int)vpin, (int)address, pin, value);
+  DIAG(F("PCA9685 Write VPin:%d I2C:x%x/%d Value:%d"), (int)vpin, (int)address, pin, value);
   #endif
   uint8_t buffer[] = {(uint8_t)(PCA9685_FIRST_SERVO + 4 * pin), 
       0, 0, (uint8_t)(value & 0xff), (uint8_t)(value >> 8)};
@@ -93,7 +96,7 @@ void PCA9685::_write(VPIN vpin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 VPins:%d-%d I2C:x%x"), _firstID, _firstID+_nPins-1, _I2CAddress);
+  DIAG(F("PCA9685 on VPins:%d-%d I2C:x%x"), _firstID, _firstID+_nPins-1, _I2CAddress);
 }
 
 // Internal helper function for this device

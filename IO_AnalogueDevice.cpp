@@ -47,11 +47,11 @@ void Analogue::create(VPIN vpin, VPIN devicePin, int activePosition, int inactiv
 void Analogue::_configure(VPIN vpin, VPIN devicePin, int activePosition, int inactivePosition, int profile) {
   (void)vpin;    // Suppress compiler warning
   #ifdef DIAG_IO
-  DIAG(F("Analogue configure Vpin:%d->Vpin:%d %d-%d"), vpin, devicePin, activePosition, inactivePosition);
+  DIAG(F("Analogue configure Vpin:%d->Vpin:%d %d-%d %d"), vpin, devicePin, activePosition, inactivePosition, profile);
   #endif
   _devicePin = devicePin;
   _activePosition = activePosition;
-  _inactivePosition = inactivePosition;
+  _currentPosition = _inactivePosition = inactivePosition;
   _profile = (ProfileType)profile;
   _lastRefreshTime = millis();
   IODevice::writeDownstream(vpin, _inactivePosition);
@@ -107,6 +107,10 @@ void Analogue::_write(VPIN vpin, int value) {
   }
   _state = value;
   _stepNumber = 0;
+  // Move from the current position, which may be in the 
+  //  middle of an animation.
+  _fromPosition = _currentPosition;
+  _toPosition = _state ? _activePosition : _inactivePosition;
   updatePosition();
   _lastRefreshTime = millis();
 }
@@ -119,7 +123,6 @@ void Analogue::_display() {
 // Private function to reposition servo
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void Analogue::updatePosition() {
-  int newPosition;
   bool changed = false;
   switch (_profile) {
     case Instant:
@@ -128,19 +131,14 @@ void Analogue::updatePosition() {
     case Slow:
       if (_stepNumber < _numSteps) {
         _stepNumber++;
-        if (_state)
-          newPosition = map(_stepNumber, 0, _numSteps, _inactivePosition, _activePosition);
-        else  
-          newPosition = map(_stepNumber, 0, _numSteps, _activePosition, _inactivePosition);
+        _currentPosition = map(_stepNumber, 0, _numSteps, _fromPosition, _toPosition);
         changed = true;
       }
       break;
     case Bounce:
       if (_stepNumber < _numSteps) {
         byte profileValue = GETFLASH(&profile[_stepNumber]);
-        if (!_state) profileValue = 100 - profileValue;
-        newPosition = map(profileValue, 
-              0, 100, _inactivePosition, _activePosition);
+        _currentPosition = map(profileValue, 0, 100, _fromPosition, _toPosition);
         changed = true;
         _stepNumber++;
       }
@@ -151,10 +149,15 @@ void Analogue::updatePosition() {
       
   // Write to PWM module.  Use writeDownstream.
   if (changed)
-    IODevice::writeDownstream(_devicePin, newPosition);
+    IODevice::writeDownstream(_devicePin, _currentPosition);
 }
 
-// Profile for a bouncing signal
+bool Analogue::_isDeletable() {
+  return true;
+}
+
+
+// Profile for a bouncing signal or turnout
 // The profile below is in the range 0-100% and should be combined with the desired limits
 // of the servo set by _activePosition and _inactivePosition.  The profile is symmetrical here,
 // i.e. the bounce is the same on the down action as on the up action.

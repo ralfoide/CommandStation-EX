@@ -656,9 +656,7 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
         for (Turnout *tt = Turnout::firstTurnout; tt != NULL; tt = tt->nextTurnout)
         {
             gotOne = true;
-            // TODO: echo sensible values for servo turnouts.
-            StringFormatter::send(stream, F("<H %d %d %d %d>\n"), tt->data.id, tt->data.address, 
-                tt->data.subAddress, (tt->data.tStatus & STATUS_ACTIVE)!=0);
+            tt->print(stream);
         }
         return gotOne; // will <X> if none found
     }
@@ -679,26 +677,11 @@ bool DCCEXParser::parseT(Print *stream, int16_t params, int16_t p[])
     }
         return true;
 
-    case 3: // <T id addr subaddr>  define DCC turnout
-        if (!Turnout::create(p[0], p[1], p[2]))
+    default: // Anything else is handled by Turnout class.
+        if (!Turnout::create(p[0], params-1, &p[1]))
             return false;
         StringFormatter::send(stream, F("<O>\n"));
         return true;
-
-    case 4: // <T id pin activePos inactivePos>
-        if (!Turnout::create(p[0], p[1], p[2], p[3]))
-            return false;   
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
-
-    case 5: // <T id pin activePos inactivePos transition>
-        if (!Turnout::create(p[0], p[1], p[2], p[3], p[4]))
-            return false;   
-        StringFormatter::send(stream, F("<O>\n"));
-        return true;
-
-    default:
-        return false; // will <x>
     }
 }
 

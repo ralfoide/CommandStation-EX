@@ -21,7 +21,7 @@
 #define iodevice_h
 
 // Define symbol to enable diagnostic output
-#define DIAG_IO Y
+//#define DIAG_IO Y
 
 #include "DIAG.h"
 #include "FSH.h"
@@ -69,54 +69,81 @@ class IODevice {
 public:
   // Class factory method for creating arbitrary device types
   static IODevice *create(int deviceTypeID, VPIN firstID, int paramCount, int params[]);
+
   // Static functions to find the device and invoke its member functions
+
+  // begin is invoked to create any standard IODevice subclass instances
   static void begin();
+
+  // configure is used invoke an IODevice instance's _configure method
   static bool configure(VPIN vpin, int paramCount, int params[]);
+
+  // write invokes the IODevice instance's _write method.
   static void write(VPIN vpin, int value);
+
+  // read invokes the IODevice instance's _read method.
   static bool read(VPIN vpin);
+
+  // loop invokes the IODevice instance's _loop method.
   static void loop();
+
   static void DumpAll();
+
+  // exists checks whether there is a device owning the specified vpin
   static bool exists(VPIN vpin);
+
+  // remove deletes the device associated with the vpin, if it is deletable
   static void remove(VPIN vpin);
 
   // When a turnout needs to allocate a vpin as its output, it allocates one using ID+turnoutVpinOffset.
-  static const VPIN turnoutVpinOffset = 300; 
+  //  static const VPIN turnoutVpinOffset = 300; 
+
   // VPIN of first PCA9685 servo controller pin.  
   static const VPIN firstServoVPin = 100;
   
 protected:
   // Method to register the device handler to the IODevice system (called from device's register() method)
   static void _registerDeviceType(int deviceTypeID, IODevice *createFunction(VPIN));
+
   // Method to perform initialisation of the device (optionally implemented within device class)
   virtual void _begin() {}
+
   // Method to configure device (optionally implemented within device class)
   virtual bool _configure(VPIN vpin, int paramCount, int params[]) { 
     (void)vpin; (void)paramCount; (void)params; // Suppress compiler warning.
     return true; 
   };
+
   // Method to write new state (optionally implemented within device class)
   virtual void _write(VPIN vpin, int value) {
     (void)vpin; (void)value;
   };
+
   // Method called from within a filter device to trigger its output (which may
   // have the same VPIN id as the input to the filter).  It works through the 
   // later devices in the chain only.
   void writeDownstream(VPIN vpin, int value);
+
   // Method to read pin state (optionally implemented within device class)
   virtual int _read(VPIN vpin) { 
     (void)vpin; 
     return 0;
   };
+
   // Method to perform updates on an ongoing basis (optionally implemented within device class)
   virtual void _loop(unsigned long currentMicros) {
     (void)currentMicros; // Suppress compiler warning.
   };
+
   // Method for displaying info on DIAG output (optionally implemented within device class)
   virtual void _display();
 
   // Destructor
   virtual ~IODevice() {};
   
+  // isDeletable returns true if object is deletable (i.e. is not a base device driver).
+  virtual bool _isDeletable();
+
   // Common object fields.
   VPIN _firstID;
   int _nPins;
@@ -125,10 +152,6 @@ protected:
   static void addDevice(IODevice *newDevice);
 
 private:
-  // Method called from subclasses to write to a downstream device, which must have 
-  // been configured before the issuing one (i.e. be later in the chain).  This allows
-  // a filter device (such as Analogue) to be configured with the same input and output
-  // VPIN numbers.
   // Method to check whether the vpin corresponds to this device
   bool owns(VPIN vpin);
   IODevice *_nextDevice = 0;
@@ -161,7 +184,7 @@ private:
   void writeRegister(byte address, byte reg, byte value);
 
   static const uint8_t _I2CAddress = 0x40; // 0x40-0x43 used
-  uint8_t _currentPortState;
+  //uint8_t _currentPortState;
 
 };
 
@@ -172,8 +195,8 @@ private:
  
 class PCF8574 : public IODevice {
 public:
-  static IODevice *createInstance(VPIN vpin, int nPins);
-  static void create(VPIN vpin, int nPins) ;
+  static IODevice *createInstance(VPIN vpin, int nPins, uint8_t I2CAddress);
+  static void create(VPIN vpin, int nPins, uint8_t I2CAddress) ;
 
 private:
   // Constructor
@@ -186,13 +209,14 @@ private:
   int _read(VPIN vpin);
   void _display();
   void _loop(unsigned long currentMicros);
-  // Address may be up to 0x27, but this may conflict with an LCD if present
-  static const uint8_t _I2CAddress = 0x20; 
+  // Address may be 0x20 up to 0x27, but this may conflict with an LCD if present
+  uint8_t _I2CAddress; 
   // Maximum number of PCF8574 modules supported.
-  uint8_t _nModules = 8;
-  uint8_t _portInputState[8] = {0, 0, 0, 0, 0, 0, 0, 0}; 
-  uint8_t _portOutputState[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  uint8_t _portCounter[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  uint8_t _nModules;
+  static const int _maxModules = 8;
+  uint8_t _portInputState[_maxModules]; 
+  uint8_t _portOutputState[_maxModules];
+  uint8_t _portCounter[_maxModules];
   // Interval between ticks when counters are updated
   static const int _portTickTime = 500; 
   // Number of ticks to elapse before cached port values expire.
@@ -209,7 +233,7 @@ private:
 class MCP23017 : public IODevice {
 public:
   static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
-  static IODevice *createInstance(VPIN vpin, int nPins);
+  static IODevice *createInstance(VPIN vpin, int nPins, uint8_t I2CAddress);
   
 private:
   // Constructor
@@ -221,14 +245,16 @@ private:
   // Device-specific read function.
   int _read(VPIN vpin);
   // Helper functions
-  void writeRegister(uint8_t reg, uint8_t value) ;
-  uint8_t readRegister(uint8_t reg);
+  void writeRegister(uint8_t I2CAddress, uint8_t reg, uint8_t value) ;
+  uint8_t readRegister(uint8_t I2CAddress, uint8_t reg);
 
   uint8_t _I2CAddress;
-  uint8_t _currentPortStateA = 0;
-  uint8_t _currentPortStateB = 0;
-  uint8_t _portModeA = 0xff; // Read mode
-  uint8_t _portModeB = 0xff; // Read mode
+  uint8_t _nModules;
+  static const int _maxModules = 8;
+  uint8_t _currentPortStateA[_maxModules];
+  uint8_t _currentPortStateB[_maxModules];
+  uint8_t _portModeA[_maxModules] = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}; // Read mode
+  uint8_t _portModeB[_maxModules] = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}; // Read mode
 
   enum {
     IODIRA = 0x00,
