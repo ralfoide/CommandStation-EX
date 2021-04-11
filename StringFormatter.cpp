@@ -35,6 +35,9 @@ bool Diag::WIFI=false;
 bool Diag::WITHROTTLE=false;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
+bool Diag::LOOP=false;
+unsigned long Diag::LOOP_start=0;
+unsigned long Diag::LOOP_count;
 
  
 void StringFormatter::diag( const FSH* input...) {

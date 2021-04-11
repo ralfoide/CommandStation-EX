@@ -54,6 +54,7 @@ const int16_t HASH_KEYWORD_MAX = 16244;
 const int16_t HASH_KEYWORD_MIN = 15978;
 const int16_t HASH_KEYWORD_LCN = 15137;   
 const int16_t HASH_KEYWORD_RESET = 26133;
+const int16_t HASH_KEYWORD_LOOP = 28540;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -795,6 +796,12 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
           delay(50);            // wait for the prescaller time to expire          
           break; // and <X> if we didnt restart 
         }
+
+    case HASH_KEYWORD_LOOP:
+        Diag::LOOP=onOff; 
+        Diag::LOOP_count=0; 
+        Diag::LOOP_start=millis(); 
+        break;
         
     case HASH_KEYWORD_EEPROM: // <D EEPROM NumEntries>
 	if (params >= 2)

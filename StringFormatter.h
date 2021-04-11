@@ -34,7 +34,9 @@ class Diag {
   static bool WITHROTTLE;
   static bool ETHERNET;
   static bool LCN;
-  
+  static bool LOOP;
+  static unsigned long LOOP_start;
+  static unsigned long LOOP_count; 
 };
 
 class StringFormatter

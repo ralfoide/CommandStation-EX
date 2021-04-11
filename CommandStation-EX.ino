@@ -103,8 +103,19 @@ void setup()
   LCD(1,F("Ready")); 
 }
 
+
 void loop()
 {
+  if (Diag::LOOP) {
+      Diag::LOOP_count++;
+      if (Diag::LOOP_count>=100000) {
+        unsigned long duration=millis()-Diag::LOOP_start;
+        DIAG(F("LOOP SPEED %l/S"),(long)(1000*Diag::LOOP_count/duration));
+        Diag::LOOP_count=0;
+        Diag::LOOP_start=millis();       
+      }
+  }
+  
   // The main sketch has responsibilities during loop()
 
   // Responsibility 1: Handle DCC background processes
