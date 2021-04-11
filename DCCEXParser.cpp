@@ -55,6 +55,8 @@ const int16_t HASH_KEYWORD_MIN = 15978;
 const int16_t HASH_KEYWORD_LCN = 15137;   
 const int16_t HASH_KEYWORD_RESET = 26133;
 const int16_t HASH_KEYWORD_LOOP = 28540;
+const int16_t HASH_KEYWORD_SPEED28 = -17064;
+const int16_t HASH_KEYWORD_SPEED128 = 25816;
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;
@@ -807,6 +809,16 @@ bool DCCEXParser::parseD(Print *stream, int16_t params, int16_t p[])
 	if (params >= 2)
 	    EEStore::dump(p[1]);
 	return true;
+
+    case HASH_KEYWORD_SPEED28:
+        DCC::setGlobalSpeedsteps(28);
+	StringFormatter::send(stream, F("28 Speedsteps"));
+        return true;
+
+    case HASH_KEYWORD_SPEED128:
+        DCC::setGlobalSpeedsteps(128);
+	StringFormatter::send(stream, F("128 Speedsteps"));
+        return true;
 
     default: // invalid/unknown
         break;
