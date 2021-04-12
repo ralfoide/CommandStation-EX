@@ -25,7 +25,6 @@
 // Static members
 //------------------------------------------------------------------------------------------------------------------
 IODevice *Analogue::createInstance(VPIN vpin) {
-  DIAG(F("Analogue createInstance(%d)"), vpin);
   IODevice::remove(vpin); // Delete any existing device that may conflict
   Analogue *dev = new Analogue();
   dev->_firstID = vpin;
@@ -53,8 +52,9 @@ void Analogue::_configure(VPIN vpin, VPIN devicePin, int activePosition, int ina
   _activePosition = activePosition;
   _currentPosition = _inactivePosition = inactivePosition;
   _profile = (ProfileType)profile;
-  _lastRefreshTime = millis();
+  
   IODevice::writeDownstream(vpin, _inactivePosition);
+  _stepNumber = _numSteps = 0;  // this forces next call to updatePosition to switch off the servo
 }
 
 // Periodically update current position if it is changing.
@@ -116,13 +116,14 @@ void Analogue::_write(VPIN vpin, int value) {
 }
 
 void Analogue::_display() {
-  DIAG(F("Analogue VPin:%d->VPin:%d Range:%d-%d"), 
+  DIAG(F("Analogue VPin:%d->VPin:%d Range:%d,%d"), 
     _firstID, _devicePin, _activePosition, _inactivePosition);
 }
 
 // Private function to reposition servo
 // TODO: Could calculate step number from elapsed time, to allow for erratic loop timing.
 void Analogue::updatePosition() {
+  if (_stepNumber > _numSteps + _catchupSteps) return; // No animation in progress
   bool changed = false;
   switch (_profile) {
     case Instant:
@@ -146,16 +147,23 @@ void Analogue::updatePosition() {
     default:
       break;
   }
-      
   // Write to PWM module.  Use writeDownstream.
-  if (changed)
+  if (changed) {
     IODevice::writeDownstream(_devicePin, _currentPosition);
+  } else if (_stepNumber < _numSteps + _catchupSteps) {
+    // We've finished animation, wait a little to allow servo to catch up
+    _stepNumber++;
+  } else if (_stepNumber == _numSteps + _catchupSteps 
+            && _currentPosition != 4095 && _currentPosition != 0) {
+    // Then switch off PWM to prevent annoying servo buzz
+    IODevice::writeDownstream(_devicePin, 0);
+    _stepNumber++;
+  }
 }
 
 bool Analogue::_isDeletable() {
   return true;
 }
-
 
 // Profile for a bouncing signal or turnout
 // The profile below is in the range 0-100% and should be combined with the desired limits

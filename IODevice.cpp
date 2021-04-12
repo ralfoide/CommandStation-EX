@@ -63,7 +63,15 @@ void IODevice::begin() {
   // Initialise the IO subsystem
   ArduinoPins::create(2, 48);  // Reserve pins numbered 2-49 for direct access
 #if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_AVR_UNO)
-  PCA9685::create(IODevice::firstServoVPin, 16); // Predefine one PCA9685 module
+  // Predefine two PCA9685 modules 0x40-0x41
+  // Allocates 32 pins 100-131
+  PCA9685::create(IODevice::firstServoVPin, 32, 0x40);
+  // Predefine four PCF8574 modules 0x20-0x23
+  // Allocates 32 pins 132-163
+  PCF8574::create(IODevice::firstServoVPin+32, 32, 0x20);
+  // Predefine two MCP23017 modules 0x24-0x25
+  // Allocates 32 pins 164-x195
+  MCP23017::create(IODevice::firstServoVPin+64, 32, 0x24);
 #endif
 }
 

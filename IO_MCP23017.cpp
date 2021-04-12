@@ -46,6 +46,10 @@ void MCP23017::_begin() {
   for (int i=0; i<_nModules; i++) {
     if (I2CManager.exists(_I2CAddress+i))
       DIAG(F("MCP23017 on I2C:x%x"), _I2CAddress+i);
+    _portModeA[i] = 0xff; // Default to read mode
+    _portModeB[i] = 0xff;
+    _currentPortStateA[i] = 0;
+    _currentPortStateB[i] = 0;
   }
 }
   
@@ -131,4 +135,12 @@ uint8_t MCP23017::readRegister(uint8_t I2CAddress, uint8_t reg) {
   uint8_t buffer;
   I2CManager.read(I2CAddress, &buffer, 1, &reg, 1);
   return buffer;
+}
+
+// Display details of this device.
+void MCP23017::_display() {
+  for (int i=0; i<_nModules; i++) {
+    DIAG(F("MCP23017 VPins:%d-%d I2C:x%x"), (int)_firstID+i*16, 
+      (int)min(_firstID+i*16+15,_firstID+_nPins-1), (int)(_I2CAddress+i));
+  }
 }

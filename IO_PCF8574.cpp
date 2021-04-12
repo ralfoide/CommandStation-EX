@@ -22,7 +22,7 @@
 #include "I2CManager.h"
 
 // Define symbol to enable PCF8574 input port value caching (reduce I2C traffic).
-//#define PCF8574_OPTIMISE
+#define PCF8574_OPTIMISE
 
 // Constructor
 PCF8574::PCF8574() {}
@@ -49,13 +49,15 @@ void PCF8574::create(VPIN vpin, int nPins, uint8_t I2CAddress) {
   createInstance(vpin, nPins, I2CAddress);
 }
 
-// Device-specific initialisation 
+// Device-specific initialisation
 void PCF8574::_begin() {
   I2CManager.begin();
   I2CManager.setClock(100000);  // Only supports slow clock
   for (int i=0; i<_nModules; i++) {
+    // TODO: Could probe further into the device to 
+    //  distinguish it from an MCP230xx.
     if (I2CManager.exists(_I2CAddress+i))
-      DIAG(F("PCF8574 on I2C:x%x"), _I2CAddress+i);
+      DIAG(F("PCF8574 found on I2C:x%x"), _I2CAddress+i);
     _portInputState[i] = 0;
     _portOutputState[i] = 0x00; // Defaults to output zero.
     _portCounter[i] = 0;
@@ -108,6 +110,7 @@ int PCF8574::_read(VPIN vpin) {
     _portInputState[deviceIndex] = inBuffer;
 #ifdef PCF8574_OPTIMISE
     _portCounter[deviceIndex] = _minTicksBetweenPortReads;
+    _counterSet = true;
 #endif
   }
   if (_portInputState[deviceIndex] & mask) 
@@ -126,15 +129,20 @@ int PCF8574::_read(VPIN vpin) {
 void PCF8574::_loop(unsigned long currentMicros) {
   (void)currentMicros;  // suppress compiler not-used warning.
 #ifdef PCF8574_OPTIMISE
-  // Process every tick
+  // Process every time
   if (currentMicros - _lastLoopEntry > _portTickTime) {
-    int elapsedTicks = (currentMicros - _lastLoopEntry) / _portTickTime;
-    for (int deviceIndex=0; deviceIndex < _nModules; deviceIndex++) {
-      if (_portCounter[deviceIndex] > elapsedTicks)
-        _portCounter[deviceIndex]-= elapsedTicks;
-      else  
-        _portCounter[deviceIndex] = 0;
-
+    if (_counterSet) { // Check if one or more counters needs processing
+      int elapsedTicks = (currentMicros - _lastLoopEntry) / _portTickTime;
+      bool counterSet = false;
+      for (int deviceIndex=0; deviceIndex < _nModules; deviceIndex++) {
+        if (_portCounter[deviceIndex] > elapsedTicks)
+          _portCounter[deviceIndex]-= elapsedTicks;
+        else 
+          _portCounter[deviceIndex] = 0;
+        if (_portCounter[deviceIndex] > 0)
+          counterSet = true;
+      }
+      if (!counterSet) _counterSet = false;
     }
     _lastLoopEntry = currentMicros;
   }
@@ -142,6 +150,9 @@ void PCF8574::_loop(unsigned long currentMicros) {
 }
 
 void PCF8574::_display() {
-  DIAG(F("PCF8574 VPins:%d-%d I2C:x%x"), (int)_firstID, (int)_firstID+_nPins-1, (int)_I2CAddress);
+  for (int i=0; i<_nModules; i++) {
+    DIAG(F("PCF8574 VPins:%d-%d I2C:x%x"), (int)_firstID+i*8, 
+      (int)min(_firstID+i*8+7,_firstID+_nPins-1), (int)(_I2CAddress+i));
+  }
 }
 

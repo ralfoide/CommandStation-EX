@@ -39,17 +39,20 @@ static const uint32_t MAX_I2C_SPEED = 1000000L; // PCA9685 rated up to 1MHz I2C 
 // be at address 0x40 and allocated pins 100-115.  In this case, pins 116-131 would be on another
 // PCA9685 on address 0x41, pins 132-147 on address 0x42, and pins 148-163 on address 0x43.  
 //
-void PCA9685::create(VPIN vpin, int nPins) {
-  createInstance(vpin, nPins);
+void PCA9685::create(VPIN vpin, int nPins, uint8_t I2CAddress) {
+  createInstance(vpin, nPins, I2CAddress);
 }
 
-IODevice *PCA9685::createInstance(VPIN vpin, int nPins) {
+IODevice *PCA9685::createInstance(VPIN vpin, int nPins, uint8_t I2CAddress) {
   #ifdef DIAG_IO
   DIAG(F("PCA9685 created Vpins:%d-%d"), vpin, vpin+nPins-1);
   #endif
   PCA9685 *dev = new PCA9685();
   dev->_firstID = vpin;
   dev->_nPins = min(nPins, 8*8);
+  dev->_nModules = (nPins + 15) / 16;
+  dev->_I2CAddress = I2CAddress;
+  dev->_begin();
   addDevice(dev);
   return dev;
 }
@@ -96,7 +99,10 @@ void PCA9685::_write(VPIN vpin, int value) {
 
 // Display details of this device.
 void PCA9685::_display() {
-  DIAG(F("PCA9685 on VPins:%d-%d I2C:x%x"), _firstID, _firstID+_nPins-1, _I2CAddress);
+  for (int i=0; i<_nModules; i++) {
+    DIAG(F("PCA9685 VPins:%d-%d I2C:x%x"), (int)_firstID+i*16, 
+      (int)min(_firstID+i*16+15,_firstID+_nPins-1), (int)(_I2CAddress+i));
+  }
 }
 
 // Internal helper function for this device

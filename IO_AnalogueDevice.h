@@ -70,8 +70,9 @@ private:
   int _fromPosition;
   int _toPosition;
   int8_t _state = 0;  
-  uint8_t _stepNumber = 0;
-  uint8_t _numSteps;
+  uint8_t _stepNumber = 0;  // current step in animation
+  uint8_t _numSteps;  // number of steps in animation
+  static const uint8_t _catchupSteps = 5; // number of steps to wait before switching servo off
   static const byte FLASH profile[30];
   enum ProfileType _profile;
   const unsigned int refreshInterval = 50; // refresh every 50ms

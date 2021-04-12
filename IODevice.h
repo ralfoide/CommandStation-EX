@@ -169,8 +169,8 @@ private:
  
 class PCA9685 : public IODevice {
 public:
-  static IODevice *createInstance(VPIN vpin, int nPins);
-  static void create(VPIN vpin, int nPins);
+  static IODevice *createInstance(VPIN vpin, int nPins, uint8_t I2CAddress);
+  static void create(VPIN vpin, int nPins, uint8_t I2CAddress);
 
 private:
   // Constructor
@@ -183,9 +183,9 @@ private:
   // Helper function
   void writeRegister(byte address, byte reg, byte value);
 
-  static const uint8_t _I2CAddress = 0x40; // 0x40-0x43 used
-  //uint8_t _currentPortState;
-
+  uint8_t _I2CAddress; // 0x40-0x43 used
+  // Number of modules configured
+  uint8_t _nModules;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +209,8 @@ private:
   int _read(VPIN vpin);
   void _display();
   void _loop(unsigned long currentMicros);
-  // Address may be 0x20 up to 0x27, but this may conflict with an LCD if present
+  // Address may be 0x20 up to 0x27, but this may conflict with an LCD if present on 0x27
+  //  or an Adafruit LCD backpack which defaults to 0x20
   uint8_t _I2CAddress; 
   // Maximum number of PCF8574 modules supported.
   uint8_t _nModules;
@@ -217,8 +218,10 @@ private:
   uint8_t _portInputState[_maxModules]; 
   uint8_t _portOutputState[_maxModules];
   uint8_t _portCounter[_maxModules];
+  // Flag that at least one _portCounter is nonzero.
+  bool _counterSet;
   // Interval between ticks when counters are updated
-  static const int _portTickTime = 500; 
+  static const int _portTickTime = 500;
   // Number of ticks to elapse before cached port values expire.
   static const int _minTicksBetweenPortReads = 2;
   unsigned long _lastLoopEntry = 0;
@@ -244,6 +247,8 @@ private:
   void _write(VPIN vpin, int value);
   // Device-specific read function.
   int _read(VPIN vpin);
+  // Device specific identification function
+  void _display();
   // Helper functions
   void writeRegister(uint8_t I2CAddress, uint8_t reg, uint8_t value) ;
   uint8_t readRegister(uint8_t I2CAddress, uint8_t reg);
@@ -253,8 +258,8 @@ private:
   static const int _maxModules = 8;
   uint8_t _currentPortStateA[_maxModules];
   uint8_t _currentPortStateB[_maxModules];
-  uint8_t _portModeA[_maxModules] = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}; // Read mode
-  uint8_t _portModeB[_maxModules] = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}; // Read mode
+  uint8_t _portModeA[_maxModules];
+  uint8_t _portModeB[_maxModules];
 
   enum {
     IODIRA = 0x00,
