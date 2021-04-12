@@ -18,9 +18,15 @@
  */
 
 #include <stdarg.h>
-#include <Wire.h>
 #include "I2CManager.h"
 #include "DIAG.h"
+
+#if defined(ARDUINO_ARCH_AVR) 
+#include "MiniWire.h"  // Cut-down Wire library with asynchronous transmission
+#define Wire MiniWire
+#else
+#include <Wire.h>    // Standard Wire library
+#endif
 
 // If not already initialised, initialise I2C (wire).
 void I2CManagerClass::begin(void) {
@@ -70,7 +76,12 @@ uint8_t I2CManagerClass::checkAddress(uint8_t address) {
 uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t size) {
   Wire.beginTransmission(address);
   Wire.write(buffer, size);
+#if defined(ARDUINO_ARCH_AVR) 
+  // Write without waiting for completion
+  return Wire.endTransmission(true, true);
+#else
   return Wire.endTransmission();
+#endif
 }
 
 // Write a complete transmission to I2C using a supplied buffer of data in Flash
@@ -95,7 +106,7 @@ uint8_t I2CManagerClass::write(uint8_t address, int nBytes, ...) {
 //  Different modules use different ways of accessing registers: 
 //    PCF8574 I/O expander justs needs the address (no data);
 //    PCA9685 needs a two byte command to select the register(s) to be read;
-//    MCP23016 needs a one-byte command to select the register.
+//    MCP23016/7 need a one-byte command to select the register.
 // Some devices use 8-bit registers exclusively and some have 16-bit registers.
 // Therefore the following function is general purpose, to apply to any
 // type of I2C device.
@@ -107,7 +118,7 @@ uint8_t I2CManagerClass::read(uint8_t address, uint8_t readBuffer[], uint8_t rea
     Wire.write(writeBuffer, writeSize);
     Wire.endTransmission(false); // Don't free bus yet
   }
-  Wire.requestFrom(address, readSize);
+  Wire.requestFrom(address, (size_t)readSize);
   uint8_t nBytes = 0;
   while (Wire.available() && nBytes < readSize) 
     readBuffer[nBytes++] = Wire.read();
