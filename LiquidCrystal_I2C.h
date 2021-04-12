@@ -73,7 +73,7 @@
 class LiquidCrystal_I2C : public LCDDisplay {
 public:
   LiquidCrystal_I2C(uint8_t lcd_Addr,uint8_t lcd_cols,uint8_t lcd_rows);
-  void begin(uint8_t cols, uint8_t rows);
+  void begin();
   void clearNative();
   void setRowNative(byte line);
   size_t writeNative(uint8_t c);
@@ -96,7 +96,6 @@ private:
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
   uint8_t _displaymode;
-  uint8_t _numlines;
   uint8_t _backlightval;
 };
 

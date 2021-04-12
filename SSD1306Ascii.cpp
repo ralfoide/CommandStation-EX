@@ -82,10 +82,10 @@ static const uint8_t SH1106_PUMP_OFF = 0x8A;
 //------------------------------------------------------------------------------
 
 // Sequence of blank pixels, to optimise clearing screen.
-// Maximum number of bytes we can send per transmission is 32.
-const uint8_t FLASH SSD1306AsciiWire::blankPixels[32] = 
+// Send a maximum of 30 pixels per transmission.
+const uint8_t FLASH SSD1306AsciiWire::blankPixels[30] = 
   {0x40,        // First byte specifies data mode
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
 
 //==============================================================================
 // SSD1306AsciiWire Method Definitions
@@ -126,8 +126,8 @@ void SSD1306AsciiWire::clearNative() {
   for (uint8_t r = 0; r <= m_displayHeight/8 - 1; r++) {
     setRowNative(r);   // Position at start of row to be erased
     for (uint8_t c = 0; c <= m_displayWidth - 1; c += maxBytes-1) {
-      uint8_t len = min((uint8_t)(m_displayWidth-c), maxBytes-1) + 1;
-      I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write up to 31 blank columns
+      uint8_t len = min(m_displayWidth-c, maxBytes-1) + 1;
+      I2CManager.write_P(m_i2cAddr, blankPixels, len);  // Write a number of blank columns
     }
   }
 }
@@ -138,7 +138,7 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
   m_col = 0;
   m_row = 0;
 #ifdef __AVR__
-  const uint8_t* table = (const uint8_t*)pgm_read_word(&dev->initcmds);
+  const uint8_t* table = (const uint8_t*)GETFLASHW(&dev->initcmds);
 #else   // __AVR__
   const uint8_t* table = dev->initcmds;
 #endif  // __AVR
@@ -157,6 +157,8 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
       SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
 }
 
+//------------------------------------------------------------------------------
+
 // Set cursor position (by pixels)
 void SSD1306AsciiWire::setCursor(uint8_t col, uint8_t row) {
   if (row < m_displayHeight && col < m_displayWidth) {
@@ -169,6 +171,7 @@ void SSD1306AsciiWire::setCursor(uint8_t col, uint8_t row) {
       SSD1306_SETSTARTPAGE | (m_row/8));
   }
 }
+
 //------------------------------------------------------------------------------
 
 // Set cursor position (by text line)

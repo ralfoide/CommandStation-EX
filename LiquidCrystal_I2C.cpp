@@ -56,18 +56,16 @@ LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols,
   if (I2CManager.exists(lcd_Addr)) {
     DIAG(F("I2C LCD found at addr x%x"), lcd_Addr);
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-    begin(lcd_cols, lcd_rows);
+    begin();
     backlight();
     lcdDisplay = this;
   }
 }
 
-void LiquidCrystal_I2C::begin(uint8_t cols, uint8_t lines) {
-  if (lines > 1) {
+void LiquidCrystal_I2C::begin() {
+  if (lcdRows > 1) {
     _displayfunction |= LCD_2LINE;
   }
-  _numlines = lines;
-  (void)cols; // Suppress compiler warning.
 
   // according to datasheet, we need at least 40ms after power rises above 2.7V
   // before sending commands. Arduino can turn on way befer 4.5V so we'll allow
@@ -122,8 +120,8 @@ void LiquidCrystal_I2C::clearNative() {
 
 void LiquidCrystal_I2C::setCursor(uint8_t col, uint8_t row) {
   int row_offsets[] = {0x00, 0x40, 0x14, 0x54};
-  if (row > _numlines) {
-    row = _numlines - 1;  // we count rows starting w/0
+  if (row > lcdRows) {
+    row = lcdRows - 1;  // we count rows starting w/0
   }
   command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
 }
