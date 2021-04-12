@@ -27,7 +27,6 @@
 
 #ifndef LCD_Implementation_h
 #define LCD_Implementation_h
-#include <Wire.h>
 #include "LCDDisplay.h"
 #include "SSD1306Ascii.h"
 #include "LiquidCrystal_I2C.h"
