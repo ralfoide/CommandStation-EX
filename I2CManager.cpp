@@ -76,7 +76,7 @@ uint8_t I2CManagerClass::checkAddress(uint8_t address) {
 uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t size) {
   Wire.beginTransmission(address);
   Wire.write(buffer, size);
-#if defined(ARDUINO_ARCH_AVR) 
+#if defined(Wire)   // Wire is defined as a macro if MiniWire is in use
   // Write without waiting for completion
   return Wire.endTransmission(true, true);
 #else
@@ -87,7 +87,9 @@ uint8_t I2CManagerClass::write(uint8_t address, const uint8_t buffer[], uint8_t 
 // Write a complete transmission to I2C using a supplied buffer of data in Flash
 uint8_t I2CManagerClass::write_P(uint8_t address, const uint8_t buffer[], uint8_t size) {
   uint8_t ramBuffer[size];
-  memcpy_P(ramBuffer, buffer, size);
+  const uint8_t *p1 = buffer;
+  for (uint8_t i=0; i<size; i++)
+    ramBuffer[i] = GETFLASH(p1++);
   return write(address, ramBuffer, size);
 }
 

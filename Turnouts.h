@@ -16,6 +16,32 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+/* 
+ * Turnout data is stored in the the following form:
+ * DCC Turnouts:
+ *  Word ID
+ *  Byte tStatus: Bit 7=active
+ *                Bits 6 to 0=0 (not used)
+ *  Byte subAddress (1-4)
+ *  Word address (0-)
+ * 
+ * Servo Turnouts:
+ *  Word ID
+ *  Byte tStatus: Bit 7=active
+ *                Bit 6=1
+ *                Bits 5 to 0=PWM Pin (0-63)
+ *  Byte positionByte: Eight LSBs of activePosition
+ *  Word positionWord: Bits 15-12=Four MSBs of activePosition
+ *                     Bits 11-0=inactivePosition
+ * 
+ * LCN Turnouts
+ *  Word ID
+ *  Byte tStatus: Bit 7=active
+ *                Bits 6 to 0=0
+ *  Byte subAddress: Not used
+ *  Word address: 0xffff (-1)
+ */
 #ifndef Turnouts_h
 #define Turnouts_h
 
@@ -29,6 +55,7 @@ const byte STATUS_PWM=0x40; // Flag as a PWM turnout
 const byte STATUS_PWMPIN=0x3F; // PWM  pin 0-63
 const int  LCN_TURNOUT_ADDRESS=-1;  // spoof dcc address -1 indicates a LCN turnout
 const int  VPIN_TURNOUT_ADDRESS=-2;      // spoof dcc address -2 indicates a VPIN turnout
+
 struct TurnoutData {
   int id;
   uint8_t tStatus; // has STATUS_ACTIVE, STATUS_PWM, STATUS_PWMPIN  

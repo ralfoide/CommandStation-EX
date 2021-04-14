@@ -175,7 +175,7 @@ Turnout *Turnout::create(int id, VPIN vpin){
   return(tt);
 }
 
-// Legacy method for creating a DCC-controlled turnout.
+// Method for creating a DCC-controlled turnout.
 Turnout *Turnout::createDCC(int id, int add, int subAdd){
   Turnout *tt=create(id);
   tt->data.address=add;
@@ -213,7 +213,7 @@ Turnout *Turnout::create(int id, int params, int16_t p[]) {
     return create(id, p[1]);
   } else if (params == 2 && p[0] == 15085) { // <T ID LED vpin>
     return createServo(id, p[1], 4095, 0, Analogue::Fast);
-  } else if (params == 2) { // legacy <T id n n> for DCC
+  } else if (params == 2) { // <T id n n> for DCC or LCN
     return createDCC(id, p[0], p[1]);
   } else if (params == 3) { // legacy <T id n n n> for Servo
     return createServo(id, p[0], p[1], p[2]);

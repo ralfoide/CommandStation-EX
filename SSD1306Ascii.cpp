@@ -137,11 +137,7 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
   m_i2cAddr = i2cAddr;
   m_col = 0;
   m_row = 0;
-#ifdef __AVR__
   const uint8_t* table = (const uint8_t*)GETFLASHW(&dev->initcmds);
-#else   // __AVR__
-  const uint8_t* table = dev->initcmds;
-#endif  // __AVR
   uint8_t size = GETFLASH(&dev->initSize);
   m_displayWidth = GETFLASH(&dev->lcdWidth);
   m_displayHeight = GETFLASH(&dev->lcdHeight);
@@ -150,7 +146,7 @@ void SSD1306AsciiWire::begin(const DevType* dev, uint8_t i2cAddr) {
   if (m_displayHeight == 64) 
     I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
       SSD1306_SETMULTIPLEX, 0x3F,     // ratio 64
-      SSD1306_SETCOMPINS, 0x02);      // sequential COM pins, disable remap
+      SSD1306_SETCOMPINS, 0x12);      // sequential COM pins, disable remap
   else 
     I2CManager.write(m_i2cAddr, 5, 0, // Set command mode
       SSD1306_SETMULTIPLEX, 0x1F,     // ratio 32
