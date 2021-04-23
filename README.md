@@ -1,3 +1,18 @@
+# PRELIMINARY WARNING about this DCC++ EX Fork
+
+This is a fork of DCC++ EX to rebuild it and run it on and ESP32 with the following important caveats:
+
+* This fork was done to debug & understand the code, and not actually interface with any electronics hardware. As such, it handles neither DCC generation nor decoding.
+* This fork targets the Heltec Wifi Kit 32 variation of the ESP32 specifically. No allowance is made to make it more generic than that.
+* Motor Driver is disabled. A new "no-op" motor driver is introduced that does not actually use any shield.
+* The DCC decoding / waveform generator and their interrupts are disabled.
+* OLED support using the U8G2 library is added.
+* Wifi/Ethernet support is summarily backported on top of the ESP32 Wifi functionality.
+* An ESP32 target is added to the platform io ini config.
+
+For the DCC++ EX maintainers: a "no-op" motor driver would be a good inclusion in your code base. There's some convenience in being able to test the firmware yet make sure no actual external systems are triggered in the process. If anything, I believe the "no-op motor driver" and the OLED U8G2 are worth picking up for your main codebase. YMMV.
+
+
 # What is DCC++ EX?
 DCC++ EX is the organization maintaining several codebases that together represent a fully open source DCC system. Currently, this includes the following:
 
