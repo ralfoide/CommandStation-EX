@@ -41,7 +41,10 @@ LCDDisplay * LCDDisplay::lcdDisplay=0;
 #if defined(OLED_DRIVER) 
   #include "LCD_OLED.h"
   #define CONDITIONAL_LCD_START for (LCDDisplay * dummy=new LCDDisplay();dummy!=NULL; dummy=dummy->loop2(true)) 
-  
+
+#elif defined(OLED_DRIVER_U8G2) 
+  #include "LCD_OLED_U8G2.h"
+  #define CONDITIONAL_LCD_START for (LCDDisplay * dummy=new LCDDisplay();dummy!=NULL; dummy=dummy->loop2(true)) 
 
 #elif defined(LCD_DRIVER)  
   #include "LCD_LCD.h"      
