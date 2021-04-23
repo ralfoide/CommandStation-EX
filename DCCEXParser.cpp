@@ -30,7 +30,12 @@
 
 #include "EEStore.h"
 #include "DIAG.h"
+#if !defined(ESP32) // RM 2021-04-22
 #include <avr/wdt.h>
+#else
+#include <esp_task_wdt.h>
+#define wdt_enable(x) // TBD... no-op for now
+#endif
 
 // These keywords are used in the <1> command. The number is what you get if you use the keyword as a parameter.
 // To discover new keyword numbers , use the <$ YOURKEYWORD> command

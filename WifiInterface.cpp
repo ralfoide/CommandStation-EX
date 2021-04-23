@@ -20,7 +20,9 @@
 #ifndef ARDUINO_AVR_UNO_WIFI_REV2
 // This code is NOT compiled on a unoWifiRev2 processor which uses a different architecture 
 #include "WifiInterface.h"        /* config.h included there */
+#if !defined(ESP32) // RM 2021-04-22
 #include <avr/pgmspace.h>
+#endif
 #include "DIAG.h"
 #include "StringFormatter.h"
 

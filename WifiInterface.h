@@ -22,7 +22,9 @@
 #include "FSH.h"
 #include "DCCEXParser.h"
 #include <Arduino.h>
+#if !defined(ESP32) // RM 2021-04-22
 #include <avr/pgmspace.h>
+#endif
 
 enum wifiSerialState { WIFI_NOAT, WIFI_DISCONNECTED, WIFI_CONNECTED };
 

@@ -40,7 +40,7 @@ void SSD1306AsciiWire::clear(uint8_t columnStart, uint8_t columnEnd,
   for (uint8_t r = rowStart; r <= rowEnd; r++) {
     setCursor(columnStart, r);   // Position at start of row to be erased
     for (uint8_t c = columnStart; c <= columnEnd; c += maxBytes-1) {
-      uint8_t len = min((uint8_t)(columnEnd-c+1), maxBytes-1) + 1;
+      uint8_t len = min((uint8_t)(columnEnd-c+1), (uint8_t)(maxBytes-1)) + 1;
       I2CManager.write(m_i2cAddr, blankPixels, len);  // Write up to 15 blank columns
     }
   }

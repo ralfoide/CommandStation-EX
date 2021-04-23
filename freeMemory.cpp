@@ -27,6 +27,8 @@ extern "C" char* sbrk(int);
 #elif defined(__AVR__)
 extern char *__brkval;
 extern char *__malloc_heap_start;
+#elif defined(ESP32) // RM 2021-04-22
+// no-op
 #else
 #error Unsupported board type
 #endif
@@ -34,7 +36,18 @@ extern char *__malloc_heap_start;
 
 static volatile int minimum_free_memory = __INT_MAX__;
 
-#if !defined(__IMXRT1062__)
+#if defined(ESP32) // RM 2021-04-22
+static inline int freeMemory() {
+  // TBD use esp functions
+  return 0;
+}
+
+int minimumFreeMemory() {
+  return 0;
+}
+
+#elif !defined(__IMXRT1062__)
+
 static inline int freeMemory() {
   char top;
 #if defined(__arm__)

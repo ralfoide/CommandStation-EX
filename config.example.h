@@ -25,7 +25,11 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-#define MOTOR_SHIELD_TYPE STANDARD_MOTOR_SHIELD
+// RM 2021-04-22 ->NOOP_MOTOR_SHIELD
+#define MOTOR_SHIELD_TYPE NOOP_MOTOR_SHIELD
+
+#error RM 2021-04-22 This is the config.example.h, create a copy and name it as config.h first!
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // The IP port to talk to a WIFI or Ethernet shield.
@@ -37,7 +41,8 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-#define ENABLE_WIFI true
+// RM 2021-04-22 ->false
+// #define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -83,7 +88,8 @@ The configuration file for DCC-EX Command Station
 // ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired). This
 // is not for Wifi. You will then need the Arduino Ethernet library as well
 //
-//#define ENABLE_ETHERNET true
+// RM 2021-04-22 -->true
+#define ENABLE_ETHERNET true
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +114,8 @@ The configuration file for DCC-EX Command Station
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
 // Also 132x64 I2C SH1106 devices.
-// #define OLED_DRIVER 128,32
+// RM 2021-04-22 true->false
+#define OLED_DRIVER 128,64
 
 /////////////////////////////////////////////////////////////////////////////////////
 
