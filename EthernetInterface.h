@@ -30,7 +30,9 @@
 #endif
 #include "DCCEXParser.h"
 #include <Arduino.h>
+#if !defined(ESP32) // RM 2021-04-22
 #include <avr/pgmspace.h>
+#endif
 #if defined (ARDUINO_TEENSY41)
  #include <NativeEthernet.h>         //TEENSY Ethernet Treiber
  #include <NativeEthernetUdp.h>   

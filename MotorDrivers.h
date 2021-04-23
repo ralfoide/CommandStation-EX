@@ -29,8 +29,8 @@
 
 // RM 2021-04-22
 #define NOOP_MOTOR_SHIELD F("NOOP_MOTOR_SHIELD"),                                                 \
-                              new MotorDriver(UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN), \
-                              new MotorDriver(UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN)
+                               new MotorDriver(UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, NOT_A_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN), \
+                               new MotorDriver(UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, NOT_A_PIN, UNUSED_PIN, 2.99, 2000, UNUSED_PIN)
 
 // Pololu Motor Shield
 #define POLOLU_MOTOR_SHIELD F("POLOLU_MOTOR_SHIELD"),                                                 \

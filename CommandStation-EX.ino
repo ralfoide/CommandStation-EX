@@ -58,7 +58,9 @@ void setup()
   // Responsibility 1: Start the usb connection for diagnostics
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
-   
+
+  DIAG(F("@@@ INO setup"));
+
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use 
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
@@ -72,6 +74,7 @@ void setup()
 #endif // WIFI_ON
 
 #if ETHERNET_ON
+  DIAG(F("@@@ ETH setup"));
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
@@ -82,7 +85,7 @@ void setup()
 
   // STANDARD_MOTOR_SHIELD, POLOLU_MOTOR_SHIELD, FIREBOX_MK1, FIREBOX_MK1S are pre defined in MotorShields.h
 
- 
+  DIAG(F("@@@ DCC begin")); 
   DCC::begin(MOTOR_SHIELD_TYPE); 
          
   #if defined(RMFT_ACTIVE) 
@@ -100,11 +103,13 @@ void setup()
       LCN::init(LCN_SERIAL);
   #endif
 
+  DIAG(F("@@@ Ready")); 
   LCD(1,F("Ready")); 
 }
 
 void loop()
 {
+  // DIAG(F("@@@ Loop - Start")); 
   // The main sketch has responsibilities during loop()
 
   // Responsibility 1: Handle DCC background processes
@@ -141,4 +146,5 @@ void loop()
     ramLowWatermark = freeNow;
     LCD(2,F("Free RAM=%5db"), ramLowWatermark);
   }
+  // DIAG(F("@@@ Loop - End")); 
 }

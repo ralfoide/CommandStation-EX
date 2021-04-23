@@ -47,7 +47,12 @@ void DCCWaveform::begin(MotorDriver * mainDriver, MotorDriver * progDriver) {
     DIAG(F("Signal pin config: high accuracy waveform"));
   else
     DIAG(F("Signal pin config: normal accuracy waveform"));
-  DCCTimer::begin(DCCWaveform::interruptHandler);     
+  if (false) { // RM 2021-04-22
+    DIAG(F("@@@ DCC Timer Begin"));
+    DCCTimer::begin(DCCWaveform::interruptHandler);     
+  } else {
+    DIAG(F("@@@ DCC Timer Begin DISABLED "));
+  }
 }
 
 void DCCWaveform::loop(bool ackManagerActive) {

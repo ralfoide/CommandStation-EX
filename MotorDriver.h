@@ -63,7 +63,7 @@ class MotorDriver {
   private:
     void  getFastPin(const FSH* type,int pin, bool input, FASTPIN & result);
     void  getFastPin(const FSH* type,int pin, FASTPIN & result) {
-	getFastPin(type, pin, 0, result);
+	    getFastPin(type, pin, 0, result);
     }
     byte powerPin, signalPin, signalPin2, currentPin, faultPin, brakePin;
     FASTPIN fastPowerPin,fastSignalPin, fastSignalPin2, fastBrakePin,fastFaultPin;

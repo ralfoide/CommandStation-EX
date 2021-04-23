@@ -32,7 +32,7 @@
 #define WIFI_ON false
 #endif
 
-#if ENABLE_ETHERNET && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO)) 
+#if ENABLE_ETHERNET && (defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_SAMD_ZERO) || defined(TEENSYDUINO))
 #define ETHERNET_ON true
 #else
 #define ETHERNET_ON false

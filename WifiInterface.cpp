@@ -64,6 +64,7 @@ bool WifiInterface::setup(long serial_link_speed,
                           const FSH *hostname,
                           const int port,
                           const byte channel) {
+  DIAG(F("@@@ Wifi setup"));
 
   wifiSerialState wifiUp = WIFI_NOAT;
 

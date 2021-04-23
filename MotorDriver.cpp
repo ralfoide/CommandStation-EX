@@ -31,13 +31,18 @@ bool MotorDriver::commonFaultPin=false;
        
 MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8_t brake_pin,
                          byte current_pin, float sense_factor, unsigned int trip_milliamps, byte fault_pin) {
+  DIAG(F("MotorDriver constructor"));
   powerPin=power_pin;
-  getFastPin(F("POWER"),powerPin,fastPowerPin);
-  pinMode(powerPin, OUTPUT);
+  if (powerPin!=UNUSED_PIN) {
+    getFastPin(F("POWER"),powerPin,fastPowerPin);
+    pinMode(powerPin, OUTPUT);
+  }
   
   signalPin=signal_pin;
-  getFastPin(F("SIG"),signalPin,fastSignalPin);
-  pinMode(signalPin, OUTPUT);
+  if (signalPin!=UNUSED_PIN) {
+    getFastPin(F("SIG"),signalPin,fastSignalPin);
+    pinMode(signalPin, OUTPUT);
+  }
   
   signalPin2=signal_pin2;
   if (signalPin2!=UNUSED_PIN) {
@@ -45,7 +50,9 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
     getFastPin(F("SIG2"),signalPin2,fastSignalPin2);
     pinMode(signalPin2, OUTPUT);
   }
-  else dualSignal=false; 
+  else {
+    dualSignal=false; 
+  }
   
   brakePin=brake_pin;
   if (brake_pin!=UNUSED_PIN){
@@ -73,19 +80,27 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
   tripMilliamps=trip_milliamps;
   rawCurrentTripValue=(int)(trip_milliamps / sense_factor);
   
-  if (currentPin==UNUSED_PIN) 
+  if (currentPin==UNUSED_PIN) {
     DIAG(F("MotorDriver ** WARNING ** No current or short detection"));  
-  else  
+  } else {
     DIAG(F("MotorDriver currentPin=A%d, senseOffset=%d, rawCurentTripValue(relative to offset)=%d"),
     currentPin-A0, senseOffset,rawCurrentTripValue);
+  }
+  DIAG(F("MotorDriver constructor end"));
 }
 
 bool MotorDriver::isPWMCapable() {
+#if !defined(ESP32) // RM 2021-04-22
     return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
+#else
+  return false;
+#endif
 }
 
 
 void MotorDriver::setPower(bool on) {
+  DIAG(F("MotorDriver set power"));
+#if !defined(ESP32) // RM 2021-04-22
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
@@ -94,6 +109,7 @@ void MotorDriver::setPower(bool on) {
     setHIGH(fastPowerPin);
   }
   else setLOW(fastPowerPin);
+#endif
 }
 
 // setBrake applies brake if on == true. So to get
@@ -105,12 +121,15 @@ void MotorDriver::setPower(bool on) {
 // compensate for that.
 //
 void MotorDriver::setBrake(bool on) {
+#if !defined(ESP32) // RM 2021-04-22
   if (brakePin == UNUSED_PIN) return;
   if (on ^ invertBrake) setHIGH(fastBrakePin);
   else setLOW(fastBrakePin);
+#endif
 }
 
 void MotorDriver::setSignal( bool high) {
+#if !defined(ESP32) // RM 2021-04-22
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -124,6 +143,7 @@ void MotorDriver::setSignal( bool high) {
         if (dualSignal) setHIGH(fastSignalPin2);
      }
    }
+#endif
 }
 
 #if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
@@ -175,9 +195,9 @@ int MotorDriver::mA2raw( unsigned int mA) {
 }
 
 void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & result) {
-    // DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
-#if !defined(ESP32) // RM 2021-04-22
+    DIAG(F("MotorDriver %S Pin=%d,"),type,pin);
     (void) type; // avoid compiler warning if diag not used above. 
+#if !defined(ESP32) // RM 2021-04-22
     uint8_t port = digitalPinToPort(pin);
     if (input)
       result.inout = portInputRegister(port);
@@ -185,9 +205,10 @@ void  MotorDriver::getFastPin(const FSH* type,int pin, bool input, FASTPIN & res
       result.inout = portOutputRegister(port);
     result.maskHIGH = digitalPinToBitMask(pin);
 #else
-  result.inout = 0;
-  result.maskHIGH = 0;
+    uint8_t port = pin;
+    result.inout = (volatile uint8_t*) malloc(2);
+    result.maskHIGH = 0;
 #endif
     result.maskLOW = ~result.maskHIGH;
-    // DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
+    DIAG(F(" port=0x%x, inoutpin=0x%x, isinput=%d, mask=0x%x"),port, result.inout,input,result.maskHIGH);
 }

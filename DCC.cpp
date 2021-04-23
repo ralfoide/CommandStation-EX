@@ -49,13 +49,17 @@ byte DCC::joinRelay=UNUSED_PIN;
 byte DCC::globalSpeedsteps=128;
 
 void DCC::begin(const FSH * motorShieldName, MotorDriver * mainDriver, MotorDriver* progDriver) {
+  DIAG(F("@@@ DCC begin -- send")); 
+  DIAG(motorShieldName);
   shieldName=(FSH *)motorShieldName;
   StringFormatter::send(Serial,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
 
+  DIAG(F("@@@ DCC begin -- eeprom")); 
   // Load stuff from EEprom
   (void)EEPROM; // tell compiler not to warn this is unused
   EEStore::init();
 
+  DIAG(F("@@@ DCC begin -- waveform begin")); 
   DCCWaveform::begin(mainDriver,progDriver); 
 }
 
@@ -564,6 +568,7 @@ void DCC::forgetAllLocos() {  // removes all speed reminders
 byte DCC::loopStatus=0;  
 
 void DCC::loop()  {
+  // DIAG(F("@@@ DCC Loop")); 
   DCCWaveform::loop(ackManagerProg!=NULL); // power overload checks
   ackManagerLoop();    // maintain prog track ack manager
   issueReminders();
