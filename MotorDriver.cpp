@@ -90,17 +90,13 @@ MotorDriver::MotorDriver(byte power_pin, byte signal_pin, byte signal_pin2, int8
 }
 
 bool MotorDriver::isPWMCapable() {
-#if !defined(ESP32) // RM 2021-04-22
-    return (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
-#else
-  return false;
-#endif
+    return (signalPin != UNUSED_PIN) && (!dualSignal) && DCCTimer::isPWMPin(signalPin); 
 }
 
 
 void MotorDriver::setPower(bool on) {
   DIAG(F("MotorDriver set power"));
-#if !defined(ESP32) // RM 2021-04-22
+  if (powerPin == UNUSED_PIN) return;
   if (on) {
     // toggle brake before turning power on - resets overcurrent error
     // on the Pololu board if brake is wired to ^D2.
@@ -109,7 +105,6 @@ void MotorDriver::setPower(bool on) {
     setHIGH(fastPowerPin);
   }
   else setLOW(fastPowerPin);
-#endif
 }
 
 // setBrake applies brake if on == true. So to get
@@ -121,15 +116,14 @@ void MotorDriver::setPower(bool on) {
 // compensate for that.
 //
 void MotorDriver::setBrake(bool on) {
-#if !defined(ESP32) // RM 2021-04-22
   if (brakePin == UNUSED_PIN) return;
   if (on ^ invertBrake) setHIGH(fastBrakePin);
   else setLOW(fastBrakePin);
-#endif
 }
 
 void MotorDriver::setSignal( bool high) {
-#if !defined(ESP32) // RM 2021-04-22
+  if (signalPin == UNUSED_PIN) return;
+
    if (usePWM) {
     DCCTimer::setPWM(signalPin,high);
    }
@@ -143,7 +137,6 @@ void MotorDriver::setSignal( bool high) {
         if (dualSignal) setHIGH(fastSignalPin2);
      }
    }
-#endif
 }
 
 #if defined(ARDUINO_TEENSY32) || defined(ARDUINO_TEENSY35)|| defined(ARDUINO_TEENSY36)
