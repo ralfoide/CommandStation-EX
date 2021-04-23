@@ -46,8 +46,10 @@
  */
 
 #include "LCDDisplay.h"
+#include "DIAG.h"
 
 void LCDDisplay::clear() {
+  DIAG(F("LCD clear"));
   clearNative();
   for (byte row = 0; row < MAX_LCD_ROWS; row++) rowBuffer[row][0] = '\0';
   topRow = -1;  // loop2 will fill from row 0
