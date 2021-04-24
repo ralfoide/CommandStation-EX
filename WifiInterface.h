@@ -39,17 +39,24 @@ public:
                           const int port,
                           const byte channel);
   static void loop();
+#if !defined(ESP32)
   static void ATCommand(const byte *command);
-  
+#endif
+
 private:
-  static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
-                    const FSH *hostname, int port, byte channel);
   static Stream *wifiStream;
   static DCCEXParser parser;
+  static bool connected;
+
+#if !defined(ESP32)
+  static wifiSerialState setup(Stream &setupStream, const FSH *SSSid, const FSH *password,
+                    const FSH *hostname, int port, byte channel);
   static wifiSerialState setup2(const FSH *SSSid, const FSH *password,
                      const FSH *hostname, int port, byte channel);
   static bool checkForOK(const unsigned int timeout, bool echo, bool escapeEcho = true);
   static bool checkForOK(const unsigned int timeout, const FSH *waitfor, bool echo, bool escapeEcho = true);
-  static bool connected;
+#else
+  static void connectToClient();
+#endif
 };
 #endif
