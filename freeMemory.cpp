@@ -36,14 +36,13 @@ extern char *__malloc_heap_start;
 
 static volatile int minimum_free_memory = __INT_MAX__;
 
-#if defined(ESP32) // RM 2021-04-22
+#if defined(ESP32)
 static inline int freeMemory() {
-  // TBD use esp functions
-  return 0;
+  return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 }
 
 int minimumFreeMemory() {
-  return 0;
+  return freeMemory();
 }
 
 #elif !defined(__IMXRT1062__)

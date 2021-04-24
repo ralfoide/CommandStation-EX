@@ -59,14 +59,18 @@ void setup()
   // This is normally Serial but uses SerialUSB on a SAMD processor
   Serial.begin(115200);
 
-  DIAG(F("@@@ INO setup"));
+  #if defined(ESP32)
+  DIAG(F("@@@ INO setup on ESP32"));
+  #endif
+
+  DIAG(F("@@@ Is WIFI ON? %d"), WIFI_ON);
 
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use 
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
     LCD(1,F("Starting")); 
-    }   
-
+  }   
+  
 //  Start the WiFi interface on a MEGA, Uno cannot currently handle WiFi
 
 #if WIFI_ON

@@ -74,6 +74,7 @@ void LCDDisplay::loop() {
 }
 
 LCDDisplay *LCDDisplay::loop2(bool force) {
+  // DIAG(F("LCD loop2 %p"), lcdDisplay); // RM DEBUG
   if (!lcdDisplay) return NULL;
   unsigned long currentMillis = millis();
 
@@ -91,6 +92,7 @@ LCDDisplay *LCDDisplay::loop2(bool force) {
   }
 
   do {
+    // DIAG(F("LCD loop2 force %d -> %d [slot %d < %d] %d x %d"), force, done, slot, lcdRows, rowNext, charIndex); // RM DEBUG
     if (bufferPointer == 0) {
       // Find a line of data to write to the screen.
       if (rowFirst < 0) rowFirst = rowNext;
@@ -139,11 +141,13 @@ LCDDisplay *LCDDisplay::loop2(bool force) {
         slot = 0;
         rowFirst = -1;
         lastScrollTime = currentMillis;
+        displayNative();
         return NULL;
       }
     }
   } while (force);
 
+  displayNative();
   return NULL;
 }
 
@@ -152,9 +156,13 @@ void LCDDisplay::moveToNextRow() {
 #if SCROLLMODE == 1
   // Finished if we've looped back to row 0
   if (rowNext == 0) done = true;
+    DIAG(F("LCD row loop SCROLLMODE 1")); // RM DEBUG
 #else
   // Finished if we're back to the first one shown
-  if (rowNext == rowFirst) done = true;
+  if (rowNext == rowFirst) {
+    done = true;
+    DIAG(F("LCD row loop SCROLLMODE %d"), SCROLLMODE); // RM DEBUG
+  }
 #endif
 }
 

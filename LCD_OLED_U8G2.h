@@ -44,6 +44,7 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ 15, /* data=*/ 4, 
 LCDDisplay::LCDDisplay() {
   // Scan for device on 0x3c and 0x3d.
   DIAG(F("OLED using U8G2 lib"));
+  interfake(0, 0, 0);
   u8g2.begin();
   u8g2.setFont(U8G2_FONT);
   u8g2.setFontRefHeightExtendedText();
@@ -55,8 +56,8 @@ LCDDisplay::LCDDisplay() {
 }
 
 void LCDDisplay::interfake(int p1, int p2, int p3) {
-  lcdCols = p1;
-  lcdRows = p2 / 8;
+  lcdCols = U8G2_PIX_W / U8G2_SX;
+  lcdRows = U8G2_PIX_H / U8G2_SY;
   (void)p3;
 }
 
@@ -74,7 +75,6 @@ void LCDDisplay::setRowNative(byte row) {
 
 void LCDDisplay::writeNative(char b) { 
   u8g2.drawGlyph(__u8g2_x, __u8g2_y, (uint16_t) b);
-  u8g2.sendBuffer();
   __u8g2_x += U8G2_SX;
   if (__u8g2_x >= U8G2_PIX_W) {
     __u8g2_x = 0;
@@ -86,5 +86,5 @@ void LCDDisplay::writeNative(char b) {
 }
 
 void LCDDisplay::displayNative() {
-  // no-op, not used.
+  u8g2.sendBuffer();
 }
