@@ -63,8 +63,6 @@ void setup()
   DIAG(F("@@@ INO setup on ESP32"));
   #endif
 
-  DIAG(F("@@@ Is WIFI ON? %d"), WIFI_ON);
-
   CONDITIONAL_LCD_START {
     // This block is still executed for DIAGS if LCD not in use 
     LCD(0,F("DCC++ EX v%S"),F(VERSION));
@@ -75,10 +73,9 @@ void setup()
 
 #if WIFI_ON
   WifiInterface::setup(WIFI_SERIAL_LINK_SPEED, F(WIFI_SSID), F(WIFI_PASSWORD), F(WIFI_HOSTNAME), IP_PORT, WIFI_CHANNEL);
-#endif // WIFI_ON
-
-#if ETHERNET_ON
-  DIAG(F("@@@ ETH setup"));
+#elif WIFI_ESP32_ON
+  WifiIfESP32::setup(F(WIFI_SSID), F(WIFI_PASSWORD));
+#elif ETHERNET_ON
   EthernetInterface::setup();
 #endif // ETHERNET_ON
 
@@ -126,8 +123,9 @@ void loop()
 // Responsibility 3: Optionally handle any incoming WiFi traffic
 #if WIFI_ON
   WifiInterface::loop();
-#endif
-#if ETHERNET_ON
+#elif WIFI_ESP32_ON
+  WifiIfESP32::loop();
+#elif ETHERNET_ON
   EthernetInterface::loop();
 #endif
 

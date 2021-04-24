@@ -7,6 +7,11 @@ The configuration file for DCC-EX Command Station
 
 **********************************************************************/
 
+// Force PlatformIO C++ completion to believe this flag exists
+#ifndef ESP32
+#define ESP32 true
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////
 //  NOTE: Before connecting these boards and selecting one in this software
 //        check the quick install guides!!! Some of these boards require a voltage
@@ -25,10 +30,7 @@ The configuration file for DCC-EX Command Station
 //   |
 //   +-----------------------v
 //
-// RM 2021-04-22 ->NOOP_MOTOR_SHIELD
 #define MOTOR_SHIELD_TYPE NOOP_MOTOR_SHIELD
-
-#error RM 2021-04-22 This is the config.example.h, create a copy and name it as config.h first!
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -41,8 +43,7 @@ The configuration file for DCC-EX Command Station
 // NOTE: Only supported on Arduino Mega
 // Set to false if you not even want it on the Arduino Mega
 //
-// RM 2021-04-22 ->false
-// #define ENABLE_WIFI true
+#define ENABLE_WIFI true
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -88,8 +89,7 @@ The configuration file for DCC-EX Command Station
 // ENABLE_ETHERNET: Set to true if you have an Arduino Ethernet card (wired). This
 // is not for Wifi. You will then need the Arduino Ethernet library as well
 //
-// RM 2021-04-22 -->true
-#define ENABLE_ETHERNET true
+// #define ENABLE_ETHERNET true
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -114,8 +114,11 @@ The configuration file for DCC-EX Command Station
 //OR define OLED_DRIVER width,height in pixels (address auto detected)
 // 128x32 or 128x64 I2C SSD1306-based devices are supported.
 // Also 132x64 I2C SH1106 devices.
-// RM 2021-04-22 true->false
-#define OLED_DRIVER 128,64
+// #define OLED_DRIVER 128,64
+
+// OR define OLED_DRIVER_U8G2 to use that library for ESP32.
+#define OLED_DRIVER_U8G2 128,64
+#define SCROLLMODE 0
 
 /////////////////////////////////////////////////////////////////////////////////////
 

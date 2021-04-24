@@ -31,8 +31,8 @@
 
 bool Diag::ACK=false;
 bool Diag::CMD=false;
-bool Diag::WIFI=false;
-bool Diag::WITHROTTLE=false;
+bool Diag::WIFI=true;
+bool Diag::WITHROTTLE=true;
 bool Diag::ETHERNET=false;
 bool Diag::LCN=false;
 
